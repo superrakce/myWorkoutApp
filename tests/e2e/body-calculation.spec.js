@@ -31,6 +31,7 @@ test('body results update while typing, remain read-only, and persist after savi
   await expect(card.locator('.metric-number')).toContainText('1,649')
   await page.getByRole('combobox', { name: 'Formula sex parameter', exact: true }).selectOption('female')
   await page.getByRole('button', { name: 'Save age and formula parameter', exact: true }).click()
+  await expect(page.getByRole('status')).toHaveText('Saved')
   await expect(card.locator('.metric-number')).toContainText('1,483')
   await page.reload()
   await expect(card.locator('.metric-number')).toContainText('1,483')
