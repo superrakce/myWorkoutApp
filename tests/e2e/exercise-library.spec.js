@@ -36,6 +36,7 @@ test('custom exercise CRUD, plan playback, snapshot history and backup survive r
   await page.getByRole('button', { name: 'Start training', exact: true }).click()
   await page.getByRole('button', { name: 'Complete this set', exact: true }).click()
   await page.getByRole('button', { name: 'Save session', exact: true }).click()
+  await expect(page.getByRole('heading', { name: 'Activity', exact: true }).first()).toBeVisible()
   await page.goto('/#/exercises')
   page.once('dialog', dialog => dialog.accept())
   await card(page, 'Orbit row revised').getByRole('button', { name: 'Delete', exact: true }).click()
