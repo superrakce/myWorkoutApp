@@ -1,38 +1,35 @@
 const dbName = 'form-workout-v1'
 export function openDatabase() {
-  return new Promise((resolve, reject) => {
-    const r = indexedDB.open(dbName, 1)
-    r.onupgradeneeded = () => r.result.createObjectStore('state')
-    r.onsuccess = () => resolve(r.result)
-    r.onerror = () => reject(r.error)
+  return new Promise((resolve,reject)=>{
+    const r=indexedDB.open(dbName,1)
+    r.onupgradeneeded=()=>r.result.createObjectStore('state')
+    r.onsuccess=()=>resolve(r.result)
+    r.onerror=()=>reject(r.error)
   })
 }
-export async function readData() {
-  const db = await openDatabase()
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction('state', 'readonly')
-    const r = tx.objectStore('state').get('app')
-    r.onsuccess = () => resolve(r.result)
-    r.onerror = () => reject(r.error)
-    tx.oncomplete = () => db.close()
+export async function readWorkspace(scope='guest') {
+  const db=await openDatabase()
+  return new Promise((resolve,reject)=>{
+    const tx=db.transaction('state','readonly'),store=tx.objectStore('state')
+    let result
+    const r=store.get('workspace:'+scope)
+    r.onsuccess=()=>{result=r.result;if(!result&&scope==='guest'){const legacy=store.get('app');legacy.onsuccess=()=>{if(legacy.result)result={data:legacy.result}}}}
+    tx.oncomplete=()=>{db.close();resolve(result)}
+    tx.onerror=()=>{db.close();reject(tx.error)}
   })
 }
-export async function writeData(data) {
-  const db = await openDatabase()
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction('state', 'readwrite')
-    tx.objectStore('state').put(JSON.parse(JSON.stringify(data)), 'app')
-    tx.oncomplete = () => {
-      db.close()
-      resolve()
-    }
-    tx.onerror = () => {
-      db.close()
-      reject(tx.error)
-    }
-    tx.onabort = () => reject(tx.error)
+export async function writeWorkspace(scope,workspace) {
+  const db=await openDatabase()
+  return new Promise((resolve,reject)=>{
+    const tx=db.transaction('state','readwrite')
+    tx.objectStore('state').put(JSON.parse(JSON.stringify(workspace)),'workspace:'+scope)
+    tx.oncomplete=()=>{db.close();resolve()}
+    tx.onerror=()=>{db.close();reject(tx.error)}
+    tx.onabort=()=>{db.close();reject(tx.error)}
   })
 }
+export async function readData(scope='guest'){return (await readWorkspace(scope))?.data}
+export async function writeData(data,scope='guest'){return writeWorkspace(scope,{data})}
 import { validatePlan } from '../services/domain.js'
 import { findExercise } from '../data/catalog.js'
 export function validateBackup(b) {

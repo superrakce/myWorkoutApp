@@ -14,7 +14,10 @@ import {
   Ellipsis,
   X,
 } from 'lucide-vue-next'
+import AccountBadge from './components/account/AccountBadge.vue'
+import { useSyncStore } from './stores/sync.js'
 import { useAppStore } from './stores/app.js'
+const sync = useSyncStore()
 const store = useAppStore(),
   { t, locale } = useI18n(),
   route = useRoute(),
@@ -32,7 +35,8 @@ const title = computed(() => links.find((l) => l[0] === route.path)?.[1] || 'pla
 watch(
   locale,
   (l) => {
-    localStorage.setItem('form-locale', l)
+    try { localStorage.setItem('form-locale', l) } catch {}
+    if(store.ready && store.data.settings.language!==l) store.data.settings.language=l
     document.documentElement.lang = l
     document.title = l === 'en' ? 'FORM · Training, in balance' : 'FORM · 讓訓練回到平衡'
   },
@@ -42,7 +46,8 @@ watch(
   () => route.path,
   () => (more.value = false),
 )
-onMounted(() => store.init())
+watch(()=>store.data.settings.language,l=>{if(['en','zh-TW'].includes(l))locale.value=l})
+onMounted(async () => {await store.init();sync.init()})
 </script>
 <template>
   <aside class="sidebar">
@@ -74,10 +79,10 @@ onMounted(() => store.init())
       <div class="mobile-brand">FORM<span>●</span></div>
       <span class="breadcrumb">{{ t(title) }}</span>
       <div class="top-actions">
-        <span class="local-indicator"><i />{{ t('local') }}</span
+        <span class="local-indicator"><i />{{ t(sync.status) }}</span
         ><button class="language" @click="locale = locale === 'en' ? 'zh-TW' : 'en'">
           {{ locale === 'en' ? '繁中' : 'EN' }}</button
-        ><RouterLink to="/body" class="avatar" :aria-label="t('body')">F</RouterLink>
+        ><AccountBadge />
       </div>
     </header>
     <div v-if="store.error" class="alert error" role="alert">
@@ -94,7 +99,7 @@ onMounted(() => store.init())
     </div>
     <main v-if="store.ready">
       <RouterView v-slot="{ Component }"
-        ><KeepAlive include="ExerciseLibrary"><component :is="Component" /></KeepAlive
+        ><KeepAlive :key="store.epoch" include="ExerciseLibrary"><component :is="Component" /></KeepAlive
       ></RouterView>
     </main>
     <main v-else class="loading">FORM ···</main>

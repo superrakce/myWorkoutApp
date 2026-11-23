@@ -1,5 +1,7 @@
 import { createI18n } from 'vue-i18n'
+import { syncPairs } from './sync.js'
 const pairs = {
+  ...syncPairs,
   exerciseEyebrow: ['Move with intention', '每個動作，都有方向'],
   planEyebrow: ['Your training, your way', '用你的方式，安排訓練'],
   historyEyebrow: ['Every session counts', '每場訓練，都是累積'],
@@ -281,7 +283,7 @@ const pairs = {
     'Data stays in this browser. Clearing browser data can remove it. Keep regular backups. No cloud synchronization.',
     '資料保存在此瀏覽器；清除瀏覽資料可能移除紀錄，請定期備份。目前無雲端同步。',
   ],
-  erase: ['Clear personal data', '清除個人資料'],
+  erase: ['Clear current local data', '清除目前的本機資料'],
   eraseConfirm: [
     'Permanently clear all personal data? Export a backup first.',
     '確定永久清除所有個人資料？請先匯出備份。',

@@ -3,7 +3,10 @@ import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Download, Upload, ShieldCheck } from 'lucide-vue-next'
 import { useAppStore } from '../stores/app.js'
+import AccountSyncPanel from '../components/account/AccountSyncPanel.vue'
+import { useSyncStore } from '../stores/sync.js'
 import { validateBackup } from '../repositories/database.js'
+const cloud = useSyncStore()
 const store = useAppStore(),
   { t, locale } = useI18n(),
   preview = ref(null),
@@ -40,6 +43,7 @@ async function file(e) {
 }
 async function restore() {
   try {
+    await cloud.pauseForRestore()
     await store.restore(preview.value)
     preview.value = null
     message.value = 'saved'
@@ -76,7 +80,7 @@ function csv() {
 }
 async function clear() {
   if (confirm(t('eraseConfirm'))) {
-    await store.reset()
+    await cloud.clearLocal()
     message.value = 'saved'
   }
 }
@@ -96,6 +100,7 @@ function zone(e) {
       <h1>{{ t('settings') }}</h1>
     </div>
   </div>
+  <AccountSyncPanel />
   <div class="settings-grid">
     <section class="panel">
       <h2>{{ t('language') }}</h2>
