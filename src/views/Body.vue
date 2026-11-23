@@ -9,7 +9,8 @@ const store = useAppStore(),
   { t, n } = useI18n(),
   profile = ref(clone(store.data.profile)),
   invalid = ref(false),
-  saved = ref(false)
+  saved = ref(false),
+  profileFields = ref(null)
 const initial = () => ({
     measuredAt: localDate(new Date(), store.data.settings.timeZone) + 'T12:00',
     height: '',
@@ -49,22 +50,28 @@ const fields = ['height', 'weight', 'bodyFat', 'fatMass', 'muscle', 'skeletal', 
 watch(() => store.data.profile, (value) => { profile.value = clone(value) }, { deep: true })
 function validProfile() {
   const age = profile.value.age
-  return (age == null || age === '' || (Number.isFinite(Number(age)) && age > 0 && age <= 120)) &&
-    /^\d{4}-\d{2}-\d{2}$/.test(profile.value.ageDate || '')
+  const date = profile.value.ageDate || ''
+  return Number.isInteger(Number(age)) && age > 0 && age <= 120 &&
+    ['male', 'female'].includes(profile.value.sex) &&
+    /^\d{4}-\d{2}-\d{2}$/.test(date) && Number.isFinite(Date.parse(date)) &&
+    new Date(date).toISOString().slice(0, 10) === date
 }
 async function saveProfile() {
+  saved.value = false
+  if (!Array.from(profileFields.value.querySelectorAll('input, select')).every((field) => field.reportValidity())) return
   invalid.value = !validProfile()
   if (invalid.value) return
   store.data.profile = clone(profile.value)
   try { await store.persist(); saved.value = true } catch {}
 }
 async function save() {
+  saved.value = false
   invalid.value = false
   const d = clone(draft.value)
   if (
     !validProfile() ||
     !(d.weight >= 10 && d.weight <= 500) ||
-    (d.height !== '' && !(d.height >= 50 && d.height <= 260)) ||
+    !(d.height >= 50 && d.height <= 260) ||
     fields.some((k) => d[k] !== '' && (!Number.isFinite(Number(d[k])) || Number(d[k]) < 0)) ||
     (d.bodyFat !== '' && d.bodyFat > 100) ||
     (profile.value.age !== null &&
@@ -147,24 +154,26 @@ function remove(id) {
   <form class="panel body-form" @submit.prevent="save">
     <h2>{{ t('addMeasurement') }}</h2>
     <p class="small muted">{{ t('savedMetricsHint') }}</p>
-    <div class="form-grid three">
-      <label
-        >{{ t('age') }}<input type="number" min="1" max="120" v-model.number="profile.age" /></label
-      ><label>{{ t('ageDate') }}<input type="date" v-model="profile.ageDate" required /></label
-      ><label
+    <p class="small muted">{{ t('requiredFieldsHint') }}</p>
+    <div ref="profileFields" class="form-grid three">
+      <label class="required-field"
+        >{{ t('age') }}<input type="number" min="1" max="120" step="1" v-model.number="profile.age" required /></label
+      ><label class="required-field">{{ t('ageDate') }}<input type="date" v-model="profile.ageDate" aria-describedby="age-date-hint" required /></label
+      ><label class="required-field"
         >{{ t('sex')
-        }}<select v-model="profile.sex">
-          <option value="">{{ t('unspecified') }}</option>
+        }}<select v-model="profile.sex" required>
+          <option value="" disabled>{{ t('chooseFormulaSex') }}</option>
           <option value="male">{{ t('male') }}</option>
           <option value="female">{{ t('female') }}</option>
         </select></label
       >
     </div>
+    <p id="age-date-hint" class="small muted">{{ t('ageDateHint') }}</p>
     <button type="button" class="button" @click="saveProfile">{{ t('saveProfile') }}</button>
     <div class="form-grid three">
-      <label
-        >{{ t('date') }}<input type="datetime-local" v-model="draft.measuredAt" required /></label
-      ><label v-for="k in fields" :key="k"
+      <label class="required-field"
+        >{{ t('measurementDate') }}<input type="datetime-local" v-model="draft.measuredAt" aria-describedby="measurement-date-hint" required /></label
+      ><label v-for="k in fields" :key="k" :class="{ 'required-field': k === 'height' || k === 'weight' }"
         >{{ t(labels[k])
         }}<input
           type="number"
@@ -172,8 +181,8 @@ function remove(id) {
           :max="k === 'bodyFat' ? 100 : k === 'height' ? 260 : k === 'weight' ? 500 : 10000"
           step="0.1"
           v-model="draft[k]"
-          :required="k === 'weight'"
-          :placeholder="t('optional')" /></label
+          :required="k === 'height' || k === 'weight'"
+          :placeholder="t(k === 'height' || k === 'weight' ? 'requiredField' : 'optional')" /></label
       ><label class="full"
         >{{ t('device')
         }}<input v-model="draft.device" :required="draft.rmr > 0" maxlength="200" /></label
@@ -181,6 +190,7 @@ function remove(id) {
         >{{ t('notes') }}<textarea v-model="draft.notes" maxlength="2000" />
       </label>
     </div>
+    <p id="measurement-date-hint" class="small muted">{{ t('measurementDateHint') }}</p>
     <CalculatedBodyFields :measurement="draft" :profile="profile" :date="draft.measuredAt.slice(0, 10)" />
     <p class="small muted">{{ t('measuredRmrHint') }}</p>
     <p v-if="invalid" class="error" role="alert">{{ t('invalid') }}</p>
