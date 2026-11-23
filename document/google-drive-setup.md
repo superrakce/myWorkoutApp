@@ -44,3 +44,9 @@ GitHub CI 使用測試 Client ID，攔截 Google 與 Drive 請求，驗證帳號
 - [Google OAuth Web Client 設定](https://developers.google.com/identity/oauth2/web/guides/get-google-api-clientid)
 - [GIS token 模型](https://developers.google.com/identity/oauth2/web/guides/use-token-model)
 - [Google Drive appDataFolder](https://developers.google.com/workspace/drive/api/guides/appdata)
+
+## 同裝置多分頁
+
+本機 workspace 使用交易式 revision 檢查。舊分頁若讀到舊版本，不能覆寫另一分頁已保存的內容，會提示先匯出本頁備份，再重載並登入；不以最後寫入者勝出。不同裝置仍透過 Drive 版本圖合併。登入、登出與清除本機資料不會刪除雲端資料。
+
+當使用者明確永久刪除雲端副本後，本機歷史仍保留；重新上傳必須再次明確確認，不能直接標示為已同步。測試涵蓋匿名匯入、撤銷授權、永久刪除、明確恢復、清除本機及損毀版本拒絕。

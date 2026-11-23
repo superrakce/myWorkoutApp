@@ -279,15 +279,9 @@ const pairs = {
     'Could not save on this device. Export your data and check browser storage.',
     '本機儲存失敗，請匯出資料並檢查瀏覽器儲存空間。',
   ],
-  storageHint: [
-    'Data stays in this browser. Clearing browser data can remove it. Keep regular backups. No cloud synchronization.',
-    '資料保存在此瀏覽器；清除瀏覽資料可能移除紀錄，請定期備份。目前無雲端同步。',
-  ],
+  storageHint: ['Data is saved in this browser. Optional Google Drive sync is managed above. Clearing browser data can remove local copies; keep backups and check sync status.', '資料保存在此瀏覽器，可於上方選擇 Google Drive 同步。清除瀏覽資料可能移除本機副本，請保留備份並確認同步狀態。'],
   erase: ['Clear current local data', '清除目前的本機資料'],
-  eraseConfirm: [
-    'Permanently clear all personal data? Export a backup first.',
-    '確定永久清除所有個人資料？請先匯出備份。',
-  ],
+  eraseConfirm: ['Clear the current data on this device? Google Drive copies will remain. Export a backup first.', '清除此裝置目前資料？Google Drive 副本仍會保留，請先匯出備份。'],
   sources: ['Sources & original assets', '資料來源與原創素材'],
   sourcesText: [
     'Mifflin–St Jeor resting formula; custom MET estimates; illustrative starter foods. All SVG artwork is original project-owned placeholder artwork, not reviewed exercise instruction.',
