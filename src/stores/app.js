@@ -89,7 +89,7 @@ export const useAppStore=defineStore('app',()=>{
     accountSession.rememberAccount(identity.value)
   }
   async function openAccount(person){await switchWorkspace('google:'+person.sub,{sub:person.sub,name:person.name||'',email:person.email||''})}
-  async function signOut(){await switchWorkspace('guest')}
+  async function signOut(){accountSession.rememberAccount(null);await switchWorkspace('guest')}
   function savePlan(p){
     const value=clone(p);value.items=value.items.map(i=>({...i,exercise:clone(i.exercise||findExercise(i.exerciseId))}));value.updatedAt=new Date().toISOString();value.id||=uid()
     const i=data.value.plans.findIndex(x=>x.id===value.id)

@@ -11,7 +11,7 @@ Vue 3 健身管理 App：英文／繁體中文、手機優先，包含動作篩�
 
 ## Google 帳號與個人 Drive
 
-保留本機模式；啟用 Google 設定後，每位使用者可登入並另行授權 Drive 同步。課表、訓練、飲食、身體量測與設定保存在本人 Google Drive appDataFolder，不建立集中式會員資料庫。登入權杖僅在記憶體中。
+保留本機模式；啟用 Google 設定後，每位使用者可登入並另行授權 Drive 同步。課表、訓練、飲食、身體量測與設定保存在本人 Google Drive appDataFolder，不建立集中式會員資料庫。登入授權只暫存在記憶體與同一分頁的 sessionStorage；重新整理先驗證 Google 帳號後恢復同步，過期則保留本機工作區並提示重新連線。
 
 部署管理者需先完成 Google Cloud／OAuth 設定，並在 GitHub Actions 的 Repository Variables 設定公開的 `VITE_GOOGLE_CLIENT_ID`。未設定時會明確顯示登入尚未啟用，本機功能可繼續使用。不要提供 Client Secret、service account 或使用者權杖。
 
@@ -34,3 +34,4 @@ npm run build
 開發文件集中於 document/。套件、dist、測試輸出及登入憑證不提交至 Git。原創占位圖、示例食品資料及其他第一版界線仍如開發文件所述。
 
 網站網址與瀏覽器帳號資料區彼此獨立；本機網址的舊資料可用 JSON 備份搬移。Drive 同步需要網路與有效授權，不等於 PWA 離線安裝。
+

@@ -86,7 +86,7 @@ describe('tab session restoration', () => {
       expect(refreshed.identity).toEqual(person)
       expect(refreshed.scope).toBe('google:' + person.sub)
       expect(refreshed.data.meals[0].name).toBe('Saved local meal')
-      await refreshed.signOut(); expect(storage.getItem(ACCOUNT_KEY)).toBeNull()
+      const signingOut = refreshed.signOut(); expect(storage.getItem(ACCOUNT_KEY)).toBeNull(); await signingOut
       setActivePinia(createPinia()); const signedOut = useAppStore(); await signedOut.init()
       expect(signedOut.scope).toBe('guest'); expect(signedOut.identity).toBeNull()
     } finally { vi.unstubAllGlobals() }
