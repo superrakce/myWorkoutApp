@@ -1,7 +1,6 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useAppStore } from '../stores/app.js'
 import { clone, timeline, uid, validatePlan } from '../services/domain.js'
-import { findExercise } from '../data/catalog.js'
 export function usePlayer(plan) {
   const store = useAppStore(),
     owned = ref(false),
@@ -24,12 +23,12 @@ export function usePlayer(plan) {
     store.persist().catch(() => {})
   }
   function create() {
-    if (!store.data.active && validatePlan(plan)) {
+    if (!store.data.active && validatePlan(plan, store.findExercise)) {
       const snapshot = {
         ...clone(plan),
         items: plan.items.map((i) => ({
           ...clone(i),
-          exercise: clone(findExercise(i.exerciseId)),
+          exercise: clone(i.exercise || store.findExercise(i.exerciseId)),
         })),
       }
       store.data.active = {
@@ -134,7 +133,7 @@ export function usePlayer(plan) {
       const log = {
         id: uid(),
         exerciseId: s.exerciseId,
-        exercise: clone(s.exercise || findExercise(s.exerciseId)),
+        exercise: clone(s.exercise || store.findExercise(s.exerciseId)),
         set: s.set,
         mode: s.mode,
         target: s.target,
@@ -166,7 +165,7 @@ export function usePlayer(plan) {
       session.value.logs.push({
         id: uid(),
         exerciseId: s.exerciseId,
-        exercise: clone(s.exercise || findExercise(s.exerciseId)),
+        exercise: clone(s.exercise || store.findExercise(s.exerciseId)),
         set: s.set,
         mode: s.mode,
         target: s.target,

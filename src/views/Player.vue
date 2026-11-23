@@ -4,7 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { Play, Pause, SkipForward, Square } from 'lucide-vue-next'
 import { useAppStore } from '../stores/app.js'
-import { templates, findExercise } from '../data/catalog.js'
+import { templates } from '../data/catalog.js'
 import { clone } from '../services/domain.js'
 import { usePlayer } from '../composables/usePlayer.js'
 import ExerciseArt from '../components/ExerciseArt.vue'
@@ -25,7 +25,7 @@ if (typeof plan.name === 'object') {
 const { session, stage, remaining, finished, owned, busy, resume, pause, advance, end, save } =
   usePlayer(plan)
 const exercise = computed(() =>
-    stage.value?.exerciseId ? stage.value.exercise || findExercise(stage.value.exerciseId) : null,
+    stage.value?.exerciseId ? stage.value.exercise || store.findExercise(stage.value.exerciseId) : null,
   ),
   next = computed(() =>
     session.value?.stages.slice(session.value.cursor + 1).find((s) => s.phase === 'working'),
@@ -175,7 +175,7 @@ onUnmounted(() => {
           ><button class="button danger" @click="end"><Square :size="16" />{{ t('end') }}</button>
         </div>
         <div v-if="next" class="next-up">
-          <span>{{ t('next') }}</span><b>{{ findExercise(next.exerciseId)?.name[locale] }}</b>
+          <span>{{ t('next') }}</span><b>{{ (next.exercise || store.findExercise(next.exerciseId))?.name[locale] }}</b>
         </div>
       </section>
       <aside class="panel music-panel">

@@ -1,3 +1,4 @@
+import { validateExercise } from './exerciseLibrary.js'
 import { axes, partAxis, findExercise } from '../data/catalog.js'
 export const clone = (v) => JSON.parse(JSON.stringify(v))
 export const uid = () => crypto.randomUUID()
@@ -82,7 +83,7 @@ export function planDistribution(plan) {
     ),
   )
 }
-export function validatePlan(p) {
+export function validatePlan(p, lookup = findExercise) {
   return Boolean(
     typeof p.name === 'string' &&
     p.name.trim() &&
@@ -97,7 +98,7 @@ export function validatePlan(p) {
     ) &&
     p.items.every(
       (i) =>
-        findExercise(i.exerciseId) &&
+        (i.exercise ? i.exercise.id === i.exerciseId && validateExercise(i.exercise) : lookup(i.exerciseId)) &&
         ['time', 'reps'].includes(i.mode) &&
         Number.isFinite(i.target) &&
         i.target > 0 &&

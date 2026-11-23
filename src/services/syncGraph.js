@@ -1,6 +1,6 @@
 // Immutable per-record revisions form a DAG. Conflicting heads are never chosen by time.
 export const FORMAT = 'form-drive-v1'
-export const COLLECTIONS = ['plans','sessions','meals','measurements']
+export const COLLECTIONS = ['plans','sessions','meals','measurements','exerciseLibrary']
 const copy = v => JSON.parse(JSON.stringify(v))
 export function canonical(v) {
   if(Array.isArray(v)) return '['+v.map(canonical).join(',')+']'
@@ -10,13 +10,13 @@ export function canonical(v) {
 export const emptySync = () => ({format:FORMAT,events:[],pending:[],files:{},enabled:false,lastSync:null,reviewRequired:false})
 export function records(data) {
   const result = {'profile':copy(data.profile),'settings':copy(data.settings),'favorites':copy(data.favorites)}
-  for(const key of COLLECTIONS) for(const row of data[key]) result[key+'/'+row.id]=copy(row)
+  for(const key of COLLECTIONS) for(const row of data[key]||[]) result[key+'/'+row.id]=copy(row)
   for(const [date,status] of Object.entries(data.days)) result['days/'+date]=copy(status)
   return result
 }
 function validKey(key) {
   return ['profile','settings','favorites'].includes(key) ||
-    /^(plans|sessions|meals|measurements)\/[^/]{1,200}$/.test(key) ||
+    /^(plans|sessions|meals|measurements|exerciseLibrary)\/[^/]{1,200}$/.test(key) ||
     /^days\/\d{4}-\d{2}-\d{2}$/.test(key)
 }
 export function validateEvent(event) {
@@ -68,7 +68,7 @@ export function materialize(events,current) {
     } else {
       const split=key.indexOf('/'),collection=key.slice(0,split),id=key.slice(split+1)
       if(collection==='days') {if(event.deleted)delete result.days[id];else result.days[id]=copy(value)}
-      else {result[collection]=result[collection].filter(v=>v.id!==id);if(!event.deleted)result[collection].push(copy(value))}
+      else {result[collection]=(result[collection]||[]).filter(v=>v.id!==id);if(!event.deleted)result[collection].push(copy(value))}
     }
   }
   return result

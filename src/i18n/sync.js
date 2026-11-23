@@ -24,8 +24,8 @@ export const syncPairs = {
     "資料保存在你自己的 Drive"
   ],
   "syncConsent": [
-    "Enable sync for plans, workouts, meals, body measurements and settings. This app only requests its own hidden application-data space, not your other Drive files.",
-    "同步課表、訓練、飲食、身體量測及設定。App 僅要求自己的隱藏應用資料區，不讀取其他 Drive 檔案。"
+    "Enable sync for your exercise library, plans, workouts, meals, body measurements and settings. This app only requests its own hidden application-data space, not your other Drive files.",
+    "同步動作庫、課表、訓練、飲食、身體量測及設定。App 僅要求自己的隱藏應用資料區，不讀取其他 Drive 檔案。"
   ],
   "syncPrivacy": [
     "Data also stays on this device. Google authorization may expire; reconnect when asked. This is not an end-to-end encrypted backup. No click tracking or shared member database.",

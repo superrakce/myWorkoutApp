@@ -4,9 +4,11 @@ import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { Search, X } from 'lucide-vue-next'
 import { useAppStore } from '../stores/app.js'
-import { exercises, equipment, item } from '../data/catalog.js'
+import { equipment } from '../data/catalog.js'
 import { filterExercises } from '../services/domain.js'
 import BodyPartSelector from '../components/BodyPartSelector.vue'
+import ExerciseEditor from '../components/ExerciseEditor.vue'
+import { clone } from '../services/domain.js'
 import ExerciseCard from '../components/ExerciseCard.vue'
 import ExerciseArt from '../components/ExerciseArt.vue'
 defineOptions({ name: 'ExerciseLibrary' })
@@ -14,6 +16,9 @@ const store = useAppStore(),
   route = useRoute(),
   router = useRouter(),
   { t, locale } = useI18n(),
+  editing = ref(null),
+  saving = ref(false),
+  formError = ref(''),
   detail = ref(null),
   adding = ref(null),
   planId = ref(''),
@@ -34,7 +39,7 @@ watch(
   },
 )
 const visible = computed(() =>
-  filterExercises(exercises, { ...filters, favoriteIds: store.data.favorites }),
+  filterExercises(store.exercises, { ...filters, favoriteIds: store.data.favorites }),
 )
 function clear() {
   Object.assign(filters, {
@@ -64,11 +69,23 @@ function add() {
     })
     plan = store.data.plans.find((p) => p.id === id)
   }
-  plan.items.push(item(adding.value.id))
+  plan.items.push({ exerciseId: adding.value.id, mode: adding.value.mode, target: adding.value.mode === 'time' ? 30 : 12, weight: 0, exercise: clone(adding.value) })
   adding.value = null
   message.value = t('added')
   if (route.query.return) router.push('/plans?edit=' + plan.id)
 }
+async function saveExercise(value) {
+  saving.value = true; formError.value = ''
+  try { await store.saveExercise(value); editing.value = null; message.value = t('saved') }
+  catch(e) { formError.value = e.message === 'invalidExercise' ? 'invalidExercise' : 'storageError' }
+  finally { saving.value = false }
+}
+async function removeExercise(exercise) {
+  if (!confirm(t('exerciseDeleteConfirm', { name: exercise.name[locale.value] }))) return
+  try { await store.removeExercise(exercise.id); detail.value = null; message.value = t('exerciseDeleted') }
+  catch { message.value = t('storageError') }
+}
+function editExercise(exercise) { formError.value = ''; editing.value = clone(exercise) }
 function addDetail(){adding.value=detail.value;detail.value=null}
 </script>
 <template>
@@ -78,7 +95,10 @@ function addDetail(){adding.value=detail.value;detail.value=null}
       <h1>{{ t('exercises') }}</h1>
       <p class="muted">{{ t('explore') }}</p>
     </div>
-    <RouterLink to="/plans" class="button soft">{{ t('plans') }}</RouterLink>
+    <div class="form-actions">
+      <button class="button primary" @click="editExercise({})">{{ t('newExercise') }}</button>
+      <RouterLink to="/plans" class="button soft">{{ t('plans') }}</RouterLink>
+    </div>
   </div>
   <p v-if="message" role="status" class="alert">
     {{ message
@@ -157,6 +177,8 @@ function addDetail(){adding.value=detail.value;detail.value=null}
           :key="e.id"
           :exercise="e"
           :favorite="store.data.favorites.includes(e.id)"
+          @edit="editExercise(e)"
+          @delete="removeExercise(e)"
           @details="detail = e"
           @favorite="store.toggleFavorite(e.id)"
           @add="adding = e"
@@ -165,6 +187,7 @@ function addDetail(){adding.value=detail.value;detail.value=null}
       <p class="muted small">{{ t('placeholder') }}</p>
     </section>
   </div>
+  <ExerciseEditor v-if="editing" :key="editing.id || 'new'" :exercise="editing" :busy="saving" :error="formError" @save="saveExercise" @cancel="editing = null" />
   <div v-if="detail" class="modal-overlay" @click.self="detail = null">
     <section class="modal" role="dialog" aria-modal="true" :aria-label="t('details')">
       <div class="section-heading">

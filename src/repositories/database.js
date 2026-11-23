@@ -38,7 +38,7 @@ export async function writeWorkspace(scope,workspace,expectedRevision) {
 export async function readData(scope='guest'){return (await readWorkspace(scope))?.data}
 export async function writeData(data,scope='guest'){return writeWorkspace(scope,{data})}
 import { validatePlan } from '../services/domain.js'
-import { findExercise } from '../data/catalog.js'
+import { resolveExercise, validateExercise } from '../services/exerciseLibrary.js'
 export function validateBackup(b) {
   const fail = () => {
       throw Error('invalidBackup')
@@ -57,6 +57,10 @@ export function validateBackup(b) {
     }
   if (b?.schemaVersion !== 1 || !obj(b.data)) fail()
   const d = b.data
+  const library = d.exerciseLibrary === undefined ? [] : d.exerciseLibrary
+  ids(library)
+  if (library.some(e => !validateExercise(e))) fail()
+  const findExercise = id => resolveExercise(id, library)
   for (const k of ['plans', 'sessions', 'meals', 'measurements']) ids(d[k])
   if (
     !obj(d.profile) ||
@@ -83,7 +87,7 @@ export function validateBackup(b) {
         items: p.items.length
           ? p.items
           : [{ exerciseId: 'pushup', mode: 'reps', target: 1, weight: 0 }],
-      })
+      }, findExercise)
     )
       fail()
   const validateSession = (s) => {

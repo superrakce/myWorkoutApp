@@ -1,16 +1,39 @@
 import { defineStore } from 'pinia'
-import { ref, watch } from 'vue'
+import { ref, watch, computed } from 'vue'
+import { resolveExercise, visibleExercises, validateExercise } from '../services/exerciseLibrary.js'
 import { readWorkspace, writeWorkspace, validateBackup } from '../repositories/database.js'
 import { clone, localDate, uid } from '../services/domain.js'
 import { emptySync, capture, mergeRemote, materialize, resolveVersion, importRecords } from '../services/syncGraph.js'
 export const freshData=()=>({
   profile:{age:null,sex:'',ageDate:localDate()},
   settings:{timeZone:'Asia/Taipei',musicVolume:0.35,cueVolume:0.25},
-  plans:[],sessions:[],meals:[],measurements:[],favorites:[],days:{},active:null,
+  plans:[],sessions:[],meals:[],measurements:[],exerciseLibrary:[],favorites:[],days:{},active:null,
 })
 export const useAppStore=defineStore('app',()=>{
   const data=ref(freshData()),ready=ref(false),error=ref(''),notice=ref(''),
     scope=ref('guest'),identity=ref(null),sync=ref(emptySync()),epoch=ref(0)
+  const exercises=computed(()=>visibleExercises(data.value.exerciseLibrary||[]))
+  const findExercise=id=>resolveExercise(id,data.value.exerciseLibrary||[])
+  async function saveExercise(exercise) {
+    const value=clone(exercise)
+    if(!validateExercise(value))throw Error('invalidExercise')
+    const previous=findExercise(value.id)
+    if(previous)for(const p of data.value.plans)for(const i of p.items)
+      if(i.exerciseId===value.id&&!i.exercise)i.exercise=clone(previous)
+    data.value.exerciseLibrary ||= []
+    const index=data.value.exerciseLibrary.findIndex(e=>e.id===value.id)
+    if(index<0)data.value.exerciseLibrary.push(value);else data.value.exerciseLibrary[index]=value
+    await persist()
+  }
+  async function removeExercise(id) {
+    const e=findExercise(id)
+    if(!e)return
+    for(const p of data.value.plans)for(const i of p.items)
+      if(i.exerciseId===id&&!i.exercise)i.exercise=clone(e)
+    await saveExercise({...clone(e),deleted:true})
+    data.value.favorites=data.value.favorites.filter(value=>value!==id)
+    await persist()
+  }
   let saving=Promise.resolve(),timer,baseline=clone(data.value)
   const revisions={guest:0}
   const listeners=new Set()
@@ -58,7 +81,7 @@ export const useAppStore=defineStore('app',()=>{
   async function openAccount(person){await switchWorkspace('google:'+person.sub,{sub:person.sub,name:person.name||'',email:person.email||''})}
   async function signOut(){await switchWorkspace('guest')}
   function savePlan(p){
-    const value=clone(p);value.updatedAt=new Date().toISOString();value.id||=uid()
+    const value=clone(p);value.items=value.items.map(i=>({...i,exercise:clone(i.exercise||findExercise(i.exerciseId))}));value.updatedAt=new Date().toISOString();value.id||=uid()
     const i=data.value.plans.findIndex(x=>x.id===value.id)
     if(i<0)data.value.plans.push(value);else data.value.plans[i]=value
     return value.id
@@ -110,6 +133,6 @@ export const useAppStore=defineStore('app',()=>{
     for(const fn of listeners)fn()
   }
   const onSaved=fn=>{listeners.add(fn);return()=>listeners.delete(fn)}
-  return {data,ready,error,notice,scope,identity,sync,epoch,init,persist,savePlan,toggleFavorite,backup,restore,reset,
+  return {exercises,findExercise,saveExercise,removeExercise,data,ready,error,notice,scope,identity,sync,epoch,init,persist,savePlan,toggleFavorite,backup,restore,reset,
     openAccount,signOut,applyRemote,resolveConflict,importGuest,onSaved}
 })

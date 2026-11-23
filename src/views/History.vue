@@ -14,7 +14,6 @@ import {
   minutesOnDate,
   dailyStats,
 } from '../services/domain.js'
-import { exercises } from '../data/catalog.js'
 import TrainingRadar from '../components/TrainingRadar.vue'
 import DateRangeFilter from '../components/DateRangeFilter.vue'
 import SessionSummary from '../components/SessionSummary.vue'
@@ -27,7 +26,7 @@ const store = useAppStore(),
   ),
   selected = ref(null),
   manual = ref(false),
-  exerciseId = ref(exercises[0].id),
+  exerciseId = ref(store.exercises[0]?.id || ''),
   date = ref(today),
   count = ref(3),
   value = ref(12)
@@ -107,8 +106,9 @@ async function save(d) {
   } catch {}
 }
 function addManual() {
-  const e = exercises.find((x) => x.id === exerciseId.value),
+  const e = store.exercises.find((x) => x.id === exerciseId.value),
     at = noonInZone(date.value, store.data.settings.timeZone)
+  if (!e) return
   selected.value = {
     id: uid(),
     snapshot: { name: e.name[locale.value], items: [] },
@@ -141,7 +141,7 @@ function addManual() {
       <p class="eyebrow">{{ t('historyEyebrow') }}</p>
       <h1>{{ t('history') }}</h1>
     </div>
-    <button class="button primary" @click="manual = true">
+    <button class="button primary" @click="exerciseId = store.exercises[0]?.id || ''; manual = true" :disabled="!store.exercises.length">
       <Plus :size="18" />{{ t('manual') }}
     </button>
   </div>
@@ -218,7 +218,7 @@ function addManual() {
       ><label
         >{{ t('exercises')
         }}<select v-model="exerciseId">
-          <option v-for="e in exercises" :key="e.id" :value="e.id">
+          <option v-for="e in store.exercises" :key="e.id" :value="e.id">
             {{ e.name[locale] }}
           </option>
         </select></label

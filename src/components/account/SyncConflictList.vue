@@ -4,10 +4,11 @@ import {findExercise} from '../../data/catalog.js'
 defineProps({issues:{type:Array,required:true},disabled:Boolean})
 defineEmits(['resolve'])
 const {t,locale}=useI18n()
-const groups={plans:'plans',sessions:'history',meals:'nutrition',measurements:'body',days:'date',profile:'body',settings:'settings',favorites:'favorites'}
+const groups={exerciseLibrary:'exercises',plans:'plans',sessions:'history',meals:'nutrition',measurements:'body',days:'date',profile:'body',settings:'settings',favorites:'favorites'}
 function describe(event){
   if(event.deleted)return t('syncDeleted')
   const v=event.value,key=event.key.split('/')[0]
+  if(key==='exerciseLibrary')return [v.name?.en,v.name?.['zh-TW'],t(v.type),t(v.difficulty),t(v.mode==='time'?'seconds':'reps'),t('primary')+': '+(v.primary||[]).map(p=>t('labels.'+p)).join(', '),t('secondary')+': '+(v.secondary||[]).map(p=>t('labels.'+p)).join(', '),t('equipment')+': '+(v.equipment||[]).map(p=>t('labels.'+p)).join(', '),(v.aliases||[]).join(', '),...(v.steps?.en||[]),...(v.steps?.['zh-TW']||[]),v.deleted?t('syncDeleted'):''].filter(Boolean).join('\n')
   if(key==='plans')return [v.name,v.description,...(v.items||[]).map(i=>(findExercise(i.exerciseId)?.name[locale.value]||i.exerciseId)+' · '+i.target+' '+t(i.mode==='time'?'seconds':'reps')+' · '+i.weight+' kg'),t('countSets',{count:v.sets},v.sets),t(v.mode),...['prepare','setRest','transitionRest','roundRest','cooldown'].map(k=>t(k)+': '+v[k])].filter(Boolean).join('\n')
   if(key==='sessions')return [v.snapshot?.name,v.startedAt,t(v.status),...(v.logs||[]).map(l=>(l.exercise?.name[locale.value]||l.exerciseId)+' · '+l.actual+' '+t(l.mode==='time'?'seconds':'reps')+' · '+l.weight+' kg · '+t(l.status==='completed'?'completed':'partial')),v.notes].filter(Boolean).join('\n')
   if(key==='meals')return [v.name,v.date,t(v.meal),v.kcal+' kcal',...['protein','carbs','fat'].filter(k=>v[k]!=null).map(k=>t(k)+': '+v[k])].join('\n')

@@ -4,7 +4,8 @@ import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { ArrowUp, ArrowDown, Trash2, Plus } from 'lucide-vue-next'
 import { clone, validatePlan, planDistribution, duration } from '../services/domain.js'
-import { findExercise } from '../data/catalog.js'
+import { useAppStore } from '../stores/app.js'
+const store = useAppStore()
 import TrainingRadar from './TrainingRadar.vue'
 const props = defineProps({ plan: { type: Object, required: true } }),
   emit = defineEmits(['save', 'cancel']),
@@ -19,7 +20,7 @@ function move(i, d) {
   ;[draft.value.items[i], draft.value.items[j]] = [draft.value.items[j], draft.value.items[i]]
 }
 function save() {
-  if (!validatePlan(draft.value)) {
+  if (!validatePlan(draft.value, store.findExercise)) {
     invalid.value = true
     return
   }
@@ -67,7 +68,7 @@ function add() {
         <div class="section-heading">
           <h3>
             {{ index + 1 }}.
-            {{ findExercise(i.exerciseId)?.name[locale] || i.exerciseId }}
+            {{ (i.exercise || store.findExercise(i.exerciseId))?.name[locale] || i.exerciseId }}
           </h3>
           <div class="icon-actions">
             <button

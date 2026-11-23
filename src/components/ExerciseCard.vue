@@ -3,7 +3,7 @@ import { useI18n } from 'vue-i18n'
 import { Heart, Plus } from 'lucide-vue-next'
 import ExerciseArt from './ExerciseArt.vue'
 defineProps({ exercise: { type: Object, required: true }, favorite: Boolean })
-defineEmits(['details', 'favorite', 'add'])
+defineEmits(['details', 'favorite', 'add', 'edit', 'delete'])
 const { t, locale } = useI18n()
 </script>
 <template>
@@ -33,6 +33,10 @@ const { t, locale } = useI18n()
         >
           <Plus :size="20" />
         </button>
+      </div>
+      <div class="form-actions">
+        <button class="text-button" @click="$emit('edit')">{{ t('edit') }}</button>
+        <button class="text-button" @click="$emit('delete')">{{ t('delete') }}</button>
       </div>
     </div>
   </article>
