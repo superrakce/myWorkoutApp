@@ -1,3 +1,4 @@
+import { accountSession } from '../services/accountSession.js'
 import { defineStore } from 'pinia'
 import { ref, watch, computed } from 'vue'
 import { resolveExercise, visibleExercises, validateExercise } from '../services/exerciseLibrary.js'
@@ -41,8 +42,11 @@ export const useAppStore=defineStore('app',()=>{
   function workspace(){return {data:clone(data.value),sync:clone(sync.value)}}
   async function init(){
     try{
-      const stored=await readWorkspace()
-      if(stored){data.value=checked(stored.data);sync.value=stored.sync||emptySync();revisions.guest=stored.revision||0}
+      const remembered=accountSession.readAccount()
+      const initialScope=remembered?'google:'+remembered.sub:'guest'
+      const stored=await readWorkspace(initialScope)
+      if(stored){data.value=checked(stored.data);sync.value=stored.sync||emptySync();revisions[initialScope]=stored.revision||0}
+      scope.value=initialScope;identity.value=remembered
       if(data.value.active&&!['completed','aborted'].includes(data.value.active.status)){
         data.value.active.status='paused';notice.value='restored'
       }
@@ -76,7 +80,13 @@ export const useAppStore=defineStore('app',()=>{
     ready.value=false;epoch.value++;scope.value=nextScope;identity.value=person
     data.value=next;sync.value=stored?.sync||emptySync()
     if(data.value.active&&!['completed','aborted'].includes(data.value.active.status))data.value.active.status='paused'
+    accountSession.rememberAccount(person)
     baseline=clone(data.value);ready.value=true
+  }
+  function updateIdentity(person){
+    if(!identity.value || identity.value.sub!==person.sub)return
+    identity.value={sub:person.sub,name:person.name||'',email:person.email||''}
+    accountSession.rememberAccount(identity.value)
   }
   async function openAccount(person){await switchWorkspace('google:'+person.sub,{sub:person.sub,name:person.name||'',email:person.email||''})}
   async function signOut(){await switchWorkspace('guest')}
@@ -134,5 +144,5 @@ export const useAppStore=defineStore('app',()=>{
   }
   const onSaved=fn=>{listeners.add(fn);return()=>listeners.delete(fn)}
   return {exercises,findExercise,saveExercise,removeExercise,data,ready,error,notice,scope,identity,sync,epoch,init,persist,savePlan,toggleFavorite,backup,restore,reset,
-    openAccount,signOut,applyRemote,resolveConflict,importGuest,onSaved}
+    openAccount,signOut,updateIdentity,applyRemote,resolveConflict,importGuest,onSaved}
 })

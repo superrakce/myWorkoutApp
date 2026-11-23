@@ -1,4 +1,6 @@
 export const syncPairs = {
+  syncRestoringSession: ['Restoring Google session', '正在恢復 Google 連線'],
+  syncAccountRemembered: ['Account remembered on this tab', '此分頁已保留帳號'],
   "syncAccount": [
     "Account & Drive sync",
     "帳號與 Drive 同步"

@@ -9,7 +9,7 @@ export const useSyncStore=defineStore('sync',()=>{
   const app=useAppStore(),status=ref('syncLocal'),error=ref(''),busy=ref(false),authBusy=ref(false),
     googleReady=ref(false),online=ref(navigator.onLine),guestPreview=ref(null)
   const configured=googleIdentity.configured(),issues=computed(()=>conflicts(app.sync.events))
-  let installed=false,timer,controller,generation=0,retries=0,recovering=false
+  let installed=false,restoring=false,timer,controller,generation=0,retries=0,recovering=false
   function cancel(){generation++;clearTimeout(timer);controller?.abort();busy.value=false}
   async function prepare(){
     if(!configured)return
@@ -51,16 +51,35 @@ export const useSyncStore=defineStore('sync',()=>{
     if(revoke)try{await googleIdentity.revoke(app.identity.sub)}catch(e){setError(e);return}
     googleIdentity.clear();status.value='syncLocal';error.value=''
   }
+  async function restoreSession(){
+    if(!app.identity||restoring||authBusy.value)return
+    if(!online.value){status.value='syncOffline';return}
+    const expected=app.scope,current=generation
+    restoring=true;authBusy.value=true;status.value='syncRestoringSession';error.value=''
+    let restored=false
+    try{
+      const person=await googleIdentity.restore(app.identity.sub)
+      if(expected!==app.scope||current!==generation)return
+      if(person){app.updateIdentity(person);restored=true}
+      status.value=app.sync.reviewRequired?'syncRestoreReview':app.sync.enabled?'syncNeedsAuth':'syncAccountRemembered'
+    }catch(e){
+      if(expected===app.scope&&current===generation){
+        error.value=e.message.startsWith('sync')?e.message:'syncNetwork'
+        status.value='syncNeedsAuth'
+      }
+    }finally{restoring=false;authBusy.value=false}
+    if(restored&&expected===app.scope&&current===generation&&app.sync.enabled&&!app.sync.reviewRequired)await run()
+  }
   function schedule(delay=1800){
     clearTimeout(timer)
-    if(!app.identity||!app.sync.enabled||app.sync.reviewRequired)return
+    if(restoring||authBusy.value||!app.identity||!app.sync.enabled||app.sync.reviewRequired)return
     if(!online.value){status.value='syncOffline';return}
     if(busy.value)return
     status.value=issues.value.length?'syncConflict':'syncPending'
     timer=setTimeout(()=>run(),delay)
   }
   async function run({approveRestore=false,recover=false}={}){
-    if(busy.value||!app.identity)return
+    if(restoring||busy.value||!app.identity)return
     if(app.sync.reviewRequired&&!approveRestore){status.value='syncRestoreReview';return}
     if(!app.sync.enabled&&!approveRestore)return
     if(!online.value){status.value='syncOffline';return}
@@ -138,7 +157,8 @@ export const useSyncStore=defineStore('sync',()=>{
     if(installed)return
     installed=true
     app.onSaved(()=>schedule())
-    window.addEventListener('online',()=>{online.value=true;schedule(0)})
+    restoreSession()
+    window.addEventListener('online',()=>{online.value=true;restoreSession()})
     window.addEventListener('offline',()=>{online.value=false;cancel();status.value=app.identity?'syncOffline':'syncLocal'})
     window.addEventListener('focus',()=>{if(app.sync.enabled)schedule(0)})
     document.addEventListener('visibilitychange',()=>{if(!document.hidden&&app.sync.enabled)schedule(0)})

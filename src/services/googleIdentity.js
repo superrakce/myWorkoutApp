@@ -1,3 +1,4 @@
+import { accountSession } from './accountSession.js'
 export const BASIC_SCOPE='openid email profile'
 export const DRIVE_SCOPE='https://www.googleapis.com/auth/drive.appdata'
 export const GOOGLE_CLIENT_ID=import.meta.env.VITE_GOOGLE_CLIENT_ID||''
@@ -17,10 +18,10 @@ export function loadGoogleIdentity(){
   })
   return scriptPromise
 }
-export function createGoogleIdentity({clientId=GOOGLE_CLIENT_ID,getGoogle=()=>globalThis.google,fetcher=(...args)=>fetch(...args),now=()=>Date.now()}={}){
+export function createGoogleIdentity({clientId=GOOGLE_CLIENT_ID,getGoogle=()=>globalThis.google,fetcher=(...args)=>fetch(...args),now=()=>Date.now(),session=accountSession}={}){
   let credential=null,generation=0
   const configured=()=>/.+\.apps\.googleusercontent\.com$/.test(clientId)
-  const clear=()=>{generation++;credential=null}
+  const clear=()=>{generation++;credential=null;session.clearAuthorization()}
   function authorize(drive=false,expectedSub=null){
     if(!configured())return Promise.reject(Error('syncNotConfigured'))
     const google=getGoogle()
@@ -40,14 +41,41 @@ export function createGoogleIdentity({clientId=GOOGLE_CLIENT_ID,getGoogle=()=>gl
             if(typeof person.sub!=='string'||!/^[a-zA-Z0-9_-]{1,256}$/.test(person.sub))throw Error('syncAuthFailed')
             if(expectedSub&&person.sub!==expectedSub)throw Error('syncAccountMismatch')
             if(current!==generation)throw Error('syncAccountChanged')
-            credential={token:response.access_token,sub:person.sub,drive,expiresAt:now()+Number(response.expires_in||0)*1000}
+            credential={clientId,token:response.access_token,sub:person.sub,drive,expiresAt:now()+Number(response.expires_in||0)*1000}
+            session.cacheAuthorization(credential)
             resolve({sub:person.sub,name:person.name||'',email:person.email||''})
-          }catch(error){if(current===generation)credential=null;reject(error)}
+          }catch(error){if(current===generation){credential=null;session.clearAuthorization()}reject(error)}
         },
         error_callback:()=>reject(Error('syncPopupClosed')),
       })
       client.requestAccessToken({prompt:drive?'consent':'select_account'})
     })
+  }
+  async function restore(expectedSub) {
+    const saved=session.readAuthorization(now())
+    if(!saved)return null
+    if(saved.clientId!==clientId){session.clearAuthorization();return null}
+    if(saved.sub!==expectedSub){session.clearAuthorization();throw Error('syncAccountMismatch')}
+    const current=++generation
+    try {
+      const response=await fetcher('https://openidconnect.googleapis.com/v1/userinfo',{
+        headers:{Authorization:'Bearer '+saved.token},signal:AbortSignal.timeout(15000),
+      })
+      if(current!==generation)throw Error('syncAccountChanged')
+      if(!response.ok)throw Error('syncNeedsAuth')
+      const person=await response.json()
+      if(current!==generation)throw Error('syncAccountChanged')
+      if(person.sub!==expectedSub)throw Error('syncAccountMismatch')
+      if(saved.expiresAt-now()<30000)throw Error('syncNeedsAuth')
+      credential=saved
+      return {sub:person.sub,name:person.name||'',email:person.email||''}
+    } catch(error) {
+      if(current===generation) {
+        credential=null
+        if(['syncNeedsAuth','syncAccountMismatch'].includes(error.message))session.clearAuthorization()
+      }
+      throw error
+    }
   }
   function access(sub,drive=true){
     if(!credential||credential.sub!==sub||drive&&!credential.drive||credential.expiresAt-now()<30000)throw Error('syncNeedsAuth')
@@ -60,6 +88,6 @@ export function createGoogleIdentity({clientId=GOOGLE_CLIENT_ID,getGoogle=()=>gl
     }))
     clear()
   }
-  return {configured,authorize,access,clear,revoke}
+  return {configured,authorize,restore,access,clear,revoke}
 }
 export const googleIdentity=createGoogleIdentity()
