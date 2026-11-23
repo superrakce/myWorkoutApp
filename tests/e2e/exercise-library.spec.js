@@ -40,6 +40,7 @@ test('custom exercise CRUD, plan playback, snapshot history and backup survive r
   page.once('dialog', dialog => dialog.accept())
   await card(page, 'Orbit row revised').getByRole('button', { name: 'Delete', exact: true }).click()
   await expect(card(page, 'Orbit row revised')).toHaveCount(0)
+  await expect(page.getByRole('status')).toContainText('Exercise deleted')
   await page.reload()
   await expect(card(page, 'Orbit row revised')).toHaveCount(0)
   await page.goto('/#/plans')
