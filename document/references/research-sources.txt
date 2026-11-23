@@ -1,0 +1,132 @@
+健身管理：資料與圖片參考紀錄
+查核日期：2026-11-21
+
+一、採用方向
+產品規格位於 ../rfq.txt。
+依使用者最新決定，Workout Position 姿勢圖片與動圖改採獨立原創：依動作名稱、器材及自行撰寫的姿勢步驟生成或繪製，不使用 GymVisual 圖片／截圖作為生成輸入或描摹來源。動作選擇與篩選仍以 MuscleWiki 為主要互動參考。
+下列來源為需求研究及素材候選清單，不表示圖片已取得、授權或整合進產品。
+本次未生成圖片；直接下載 Wikimedia 檔案時環境連線失敗，故目前只保存來源與原圖連結。
+原始需求備份位於 originals/rfq.original.txt，保留修改前的原始位元內容。
+
+二、使用者指定的參考網站
+
+R01 GymVisual
+https://gymvisual.com/
+用途：早期運動姿勢靜態圖、循環示範與素材分類研究；目前不是產品素材取得或生成來源。
+首頁可確認具有插畫、GIF 及影片分類，可依目標部位及器材等條件分類。
+官方條款：https://gymvisual.com/content/3-terms-and-conditions-of-use
+狀態：已查閱首頁及條款；未下載或購買媒體，未將公開預覽放入產品。
+如日後另決定整合其素材，依官方授權處理，來源／版本／授權狀態存入 MediaAsset。
+條款包含 AI 衍生使用限制；本規格不把 GymVisual 圖檔作為生成素材的參考輸入。
+補充查核：個人非商業用途不會自動取得付費素材的使用權。授權版本的一般修改與 AI 衍生處理應分開判斷，不能假定簡化後即不需授權。
+官方免費分類：https://gymvisual.com/14-free
+免費 GIF 候選：Weighted Crunch (behind head)
+https://gymvisual.com/free/2694-weighted-crunch-behind-head.html
+頁面列有 180、360、720、1080 px 四種 GIF 尺寸。
+免費影片候選：Hyperextension (VERSION 2)
+https://gymvisual.com/videos/5521-hyperextension-version-2.html
+頁面標示 MP4、1920×1080。
+兩項目前均列於官方免費分類，但尚未取得實際下載檔或完成官方領取流程；分類頁的預覽不作為已授權檔案。此為先前候選，現階段改採獨立原創，不以領取這些檔案作為開發前提。
+
+使用者已確認：本機保存、手機優先、六軸雷達圖按目前規格執行；素材目前規劃為個人非商業使用。
+
+R02 MuscleWiki
+使用者指定：https://musclewiki.com/zh-cn/exercises/wrist/recovery
+首頁：https://musclewiki.com/
+官方文件：https://api.musclewiki.com/documentation
+用途：人體部位探索與動作篩選的互動參考。
+狀態：指定頁無法由文字瀏覽工具完整讀取；首頁與官方 API 文件可讀取。
+官方文件可確認肌群、器材、難度、推拉／靜態等篩選概念，以及主要／次要肌群資料。
+本產品的多選邏輯、持有器材模式及六軸映射是自行定義，並非宣稱逐項複製指定頁。
+官方語言清單列有簡體中文；不因此假定能直接取得符合本產品用語的繁體中文。
+第一版不串接其付費 API，也未下載人體圖或影片。
+
+三、資料與技術依據
+
+R03 靜息代謝公式
+Mifflin et al. (1990), A new predictive equation for resting energy expenditure in healthy individuals.
+https://pubmed.ncbi.nlm.nih.gov/2305711/
+用途：rfq.txt 的 RMR／REE 估算及公式驗證；屬預測公式，非個人實測。
+
+R04 運動強度與消耗
+https://pacompendium.com/adult-compendium/
+https://pacompendium.com/conditioning-exercise/
+https://pacompendium.com/corrected-mets/
+https://pacompendium.com/
+用途：活動代碼、強度描述、MET 與適用限制。
+成人版頁面標示 19～59 歲；網站使用說明允許商業用途，要求保留 MET 數值並引用來源。
+例：代碼 02054 的多動作阻力訓練為 3.5 MET；02050 高強度阻力訓練為 6.0 MET。
+上述分類不等於每個啞鈴或徒手動作都固定使用同一 MET，需依實際活動及估算範圍對應。
+產品淨消耗公式是為簡化收支明確定義的扣除口徑，非引用為個人校正 MET。
+
+R05 台灣食品資料
+https://data.gov.tw/dataset/8543
+提供單位：衛生福利部食品藥物管理署。
+資料集欄位包含樣品名稱、分類、分析項、每 100 克含量、每單位重等。
+頁面標示政府資料開放授權條款第 1 版；實作需保存來源、下載日期與資料版本。
+狀態：已查核資料集頁面，未下載完整食品資料或完成資料清理。
+
+R06 體重換算限制
+https://www.niddk.nih.gov/health-information/professionals/diabetes-discoveries-practice/nih-body-weight-planner
+用途：固定熱量換算不等於長期體重預測；支持將實測體重、粗略等值與動態預測分開。
+rfq.txt 的 7700 kcal／kg 為產品粗略換算常數，並未實作 NIH 動態模型。
+
+R07 Vue 生態系
+https://vuejs.org/guide/introduction.html
+https://pinia.vuejs.org/introduction.html
+https://vite.dev/guide/
+https://vue-i18n.intlify.dev/guide/advanced/composition
+https://vue-i18n.intlify.dev/guide/essentials/fallback
+https://vue-i18n.intlify.dev/guide/essentials/datetime
+https://vue-i18n.intlify.dev/guide/essentials/number
+用途：Vue 3 Composition API、共用狀態、建置及 en／zh-TW 語系與格式規格。
+
+R08 播放器及儲存限制
+https://developer.mozilla.org/en-US/docs/Web/Media/Guides/Autoplay
+https://developer.chrome.com/blog/timer-throttling-in-chrome-88
+https://developer.mozilla.org/en-US/docs/Web/API/Screen_Wake_Lock_API
+https://developer.mozilla.org/en-US/docs/Web/API/Storage_API/Storage_quotas_and_eviction_criteria
+用途：使用者操作後啟動音訊、背景暫停、螢幕喚醒失敗處理、瀏覽器儲存與備份需求。
+
+R09 無障礙與雷達圖
+https://www.w3.org/TR/WCAG22/
+https://echarts.apache.org/examples/en/editor.html?c=radar
+用途：文字對比、非色彩提示、圖表資料替代，以及六軸雷達的實作方向。
+ECharts 範例頁需要 JavaScript；本次僅確認官方範例連結，未做瀏覽器視覺驗證。
+
+四、補充圖片候選（非主要視覺方向）
+
+IMG-01 深蹲動圖
+檔名：Squats 01.gif
+來源頁：https://commons.wikimedia.org/wiki/File:Squats_01.gif
+原始檔：https://upload.wikimedia.org/wikipedia/commons/5/52/Squats_01.gif
+作者：Zimmermanns
+授權：CC BY 3.0
+https://creativecommons.org/licenses/by/3.0/
+來源頁標示尺寸 800×449，10 幀、約 5 秒循環。
+使用時應標示作者、來源、授權及是否修改；適合作為動圖載入或靜態替代的技術參考。
+建議署名：Squats 01.gif — Zimmermanns, CC BY 3.0；附來源與授權連結。
+本次狀態：來源及授權頁已查核，圖檔下載失敗，未做姿勢與逐幀審查。
+
+IMG-02 啞鈴二頭彎舉照片
+檔名：Dumbbell bicep curls.jpg
+來源頁：https://commons.wikimedia.org/wiki/File:Dumbbell_bicep_curls.jpg
+960px 版本：https://thumb.wikimedia.org/wikipedia/commons/thumb/0/06/Dumbbell_bicep_curls.jpg/960px-Dumbbell_bicep_curls.jpg
+作者：PTPioneer
+作者要求連結：https://www.ptpioneer.com/
+原始 Flickr：https://www.flickr.com/photos/182613284@N02/48317690272/
+授權：CC BY 2.0
+https://creativecommons.org/licenses/by/2.0/
+來源頁標示原始尺寸 6000×4000；列表不應直接載入完整原檔。
+建議署名：Dumbbell bicep curls — PTPioneer, CC BY 2.0；附作者、來源及授權連結。
+本次狀態：來源及授權頁已查核，圖檔下載失敗，未納入正式產品素材。
+
+五、內容準備規則
+目前製作方向：以通用運動動作作為主題，自行編寫描述，獨立設計角色、視角與構圖；不將特定網站的圖片或文字改寫後充當原創。
+概念與表達的區別可參考台灣著作權法第 10-1 條；這不等於保證任何生成結果都不會涉及他人權利。
+https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=J0070017&flno=10-1
+1. 先確認動作 ID、雙語名稱、部位、器材與單雙側，再綁定圖片與動圖。
+2. 動作姿勢與肌群資訊需人工核對；圖片只是說明，不提供個別傷病治療判斷。
+3. 初始素材以一致視覺系統為主；補充照片與動圖不自動成為正式風格。
+4. 媒體逐筆保存來源及使用狀態；使用者備份與原始媒體檔案分開管理。
+5. 本次完成的是需求規格與來源研究，不代表動作庫、食品庫或應用程式已實作。

@@ -1,0 +1,38 @@
+{
+  "version": 1,
+  "created": "2026-11-23",
+  "assets": [
+    {
+      "id": "form-exercise-placeholder-v1",
+      "file": "src/components/ExerciseArt.vue",
+      "exerciseIds": "All 30 catalog entries; region highlight only",
+      "author": "FORM project",
+      "source": "Independently authored SVG code from basic geometric shapes",
+      "license": "Project-owned original artwork",
+      "status": "placeholder-unreviewed",
+      "isMovementDemonstration": false,
+      "generationTool": "none",
+      "brief": "Full-body geometric person holding two simple weights; navy clothing, yellow region highlight, pale grid background. Not a depiction of any specific exercise technique."
+    },
+    {
+      "id": "form-hero-dumbbell-v1",
+      "file": "src/views/Dashboard.vue",
+      "author": "FORM project",
+      "source": "Independently authored SVG geometry",
+      "license": "Project-owned original artwork",
+      "status": "decorative",
+      "isMovementDemonstration": false
+    },
+    {
+      "id": "form-body-selector-v1",
+      "file": "src/components/BodyPartSelector.vue",
+      "author": "FORM project",
+      "source": "Independently authored simplified front/back SVG region selector",
+      "license": "Project-owned original artwork",
+      "status": "schematic-not-anatomical",
+      "isMovementDemonstration": false
+    }
+  ],
+  "thirdPartyIcons": { "package": "lucide-vue-next", "license": "ISC", "usage": "Interface icons" },
+  "externalReferenceImagesUsed": false
+}
