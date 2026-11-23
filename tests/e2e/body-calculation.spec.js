@@ -43,14 +43,15 @@ test('body results update while typing, remain read-only, and persist after savi
   await page.setViewportSize({ width: 390, height: 844 })
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
 })
-test('measured resting energy remains an optional sourced measurement', async ({ page }) => {
+test('measured resting energy remains optional without removed metadata fields', async ({ page }) => {
   await openBody(page)
   await page.getByLabel('Age on measurement date', { exact: true }).fill('30')
   await page.getByRole('combobox', { name: 'Formula sex parameter', exact: true }).selectOption('male')
   await page.getByLabel('Height (cm)', { exact: true }).fill('175')
   await page.getByLabel('Body weight (kg)', { exact: true }).fill('70')
   await page.getByLabel('Measured resting energy (kcal/day)', { exact: true }).fill('1500')
-  await page.getByLabel('Measurement source / device', { exact: true }).fill('Synthetic test device')
+  await expect(page.getByLabel('Measurement source / device', { exact: true })).toHaveCount(0)
+  await expect(page.getByLabel('Notes', { exact: true })).toHaveCount(0)
   await page.getByRole('button', { name: 'Save', exact: true }).click()
   await expect(page.getByRole('status')).toHaveText('Saved')
   await expect(page.locator('.metric-card').filter({ hasText: 'Estimated resting energy' }).locator('.metric-number')).toContainText('1,500')

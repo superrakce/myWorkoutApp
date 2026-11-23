@@ -83,8 +83,7 @@ async function save() {
     (d.bodyFat !== '' && d.bodyFat > 100) ||
     (profile.value.age !== null &&
       profile.value.age !== '' &&
-      !(profile.value.age > 0 && profile.value.age <= 120)) ||
-    (d.rmr > 0 && !d.device.trim())
+      !(profile.value.age > 0 && profile.value.age <= 120))
   ) {
     invalid.value = true
     return
@@ -190,12 +189,7 @@ function remove(id) {
           v-model="draft[k]"
           :required="k === 'height' || k === 'weight'"
           :placeholder="t(k === 'height' || k === 'weight' ? 'requiredField' : 'optional')" /></label
-      ><label class="full"
-        >{{ t('device')
-        }}<input v-model="draft.device" :required="draft.rmr > 0" maxlength="200" /></label
-      ><label class="full"
-        >{{ t('notes') }}<textarea v-model="draft.notes" maxlength="2000" />
-      </label>
+      >
     </div>
     <CalculatedBodyFields :measurement="draft" :profile="profile" :date="draft.measuredAt.slice(0, 10)" />
     <p class="small muted">{{ t('measuredRmrHint') }}</p>
@@ -269,7 +263,6 @@ function remove(id) {
         >
         <p>
           {{ m.weight }} kg · {{ m.height || '—' }} cm · {{ t('bodyFat') }} {{ m.bodyFat ?? '—' }}%
-          · {{ m.device }}
         </p>
         <p class="small muted">
           {{
