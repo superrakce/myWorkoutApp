@@ -103,7 +103,7 @@ test('body measurement and original-layout review', async ({ page }) => {
   await page.evaluate(() => localStorage.setItem('form-locale', 'en'))
   await page.reload()
   await page.goto('/#/body')
-  await page.getByLabel('Age at reference date', { exact: true }).fill('30')
+  await page.getByLabel('Age on measurement date', { exact: true }).fill('30')
   await page
     .getByRole('combobox', { name: 'Formula sex parameter', exact: true })
     .selectOption('male')

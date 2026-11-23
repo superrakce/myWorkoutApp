@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { Trash2, Pencil } from 'lucide-vue-next'
 import { useAppStore } from '../stores/app.js'
 import { uid, localDate, clone, rmr, restingEstimate, measurementAt } from '../services/domain.js'
+import { profileAtMeasurement } from '../services/bodyProfile.js'
 import CalculatedBodyFields from '../components/body/CalculatedBodyFields.vue'
 const store = useAppStore(),
   { t, n } = useI18n(),
@@ -47,10 +48,16 @@ const fields = ['height', 'weight', 'bodyFat', 'fatMass', 'muscle', 'skeletal', 
     if (result.reason === 'missing') return t('rmrMissing', { fields: result.missing.map((key) => t(key)).join('、') })
     return t(result.reason === 'ageRange' ? 'rmrAgeRange' : 'rmrDateInvalid')
   })
-watch(() => store.data.profile, (value) => { profile.value = clone(value) }, { deep: true })
+profile.value = profileAtMeasurement(profile.value, draft.value.measuredAt)
+watch(() => draft.value.measuredAt, (value) => {
+  profile.value = profileAtMeasurement(profile.value, value)
+}, { flush: 'sync' })
+watch(() => store.data.profile, (value) => {
+  profile.value = profileAtMeasurement(clone(value), draft.value.measuredAt)
+}, { deep: true })
 function validProfile() {
   const age = profile.value.age
-  const date = profile.value.ageDate || ''
+  const date = draft.value.measuredAt.slice(0, 10)
   return Number.isInteger(Number(age)) && age > 0 && age <= 120 &&
     ['male', 'female'].includes(profile.value.sex) &&
     /^\d{4}-\d{2}-\d{2}$/.test(date) && Number.isFinite(Date.parse(date)) &&
@@ -61,7 +68,7 @@ async function saveProfile() {
   if (!Array.from(profileFields.value.querySelectorAll('input, select')).every((field) => field.reportValidity())) return
   invalid.value = !validProfile()
   if (invalid.value) return
-  store.data.profile = clone(profile.value)
+  store.data.profile = { ...clone(profile.value), ageDate: draft.value.measuredAt.slice(0, 10) }
   try { await store.persist(); saved.value = true } catch {}
 }
 async function save() {
@@ -88,7 +95,7 @@ async function save() {
   const i = store.data.measurements.findIndex((m) => m.id === d.id)
   if (i < 0) store.data.measurements.push(d)
   else store.data.measurements[i] = d
-  store.data.profile = clone(profile.value)
+  store.data.profile = { ...clone(profile.value), ageDate: draft.value.measuredAt.slice(0, 10) }
   try {
     await store.persist()
     draft.value = initial()
@@ -157,8 +164,10 @@ function remove(id) {
     <p class="small muted">{{ t('requiredFieldsHint') }}</p>
     <div ref="profileFields" class="form-grid three">
       <label class="required-field"
+        >{{ t('measurementDate') }}<input type="datetime-local" v-model="draft.measuredAt" aria-describedby="measurement-date-hint" required /></label>
+      <label class="required-field"
         >{{ t('age') }}<input type="number" min="1" max="120" step="1" v-model.number="profile.age" required /></label
-      ><label class="required-field">{{ t('ageDate') }}<input type="date" v-model="profile.ageDate" aria-describedby="age-date-hint" required /></label
+      
       ><label class="required-field"
         >{{ t('sex')
         }}<select v-model="profile.sex" required>
@@ -168,12 +177,10 @@ function remove(id) {
         </select></label
       >
     </div>
-    <p id="age-date-hint" class="small muted">{{ t('ageDateHint') }}</p>
+    <p id="measurement-date-hint" class="small muted">{{ t('measurementDateHint') }}</p>
     <button type="button" class="button" @click="saveProfile">{{ t('saveProfile') }}</button>
     <div class="form-grid three">
-      <label class="required-field"
-        >{{ t('measurementDate') }}<input type="datetime-local" v-model="draft.measuredAt" aria-describedby="measurement-date-hint" required /></label
-      ><label v-for="k in fields" :key="k" :class="{ 'required-field': k === 'height' || k === 'weight' }"
+      <label v-for="k in fields" :key="k" :class="{ 'required-field': k === 'height' || k === 'weight' }"
         >{{ t(labels[k])
         }}<input
           type="number"
@@ -190,7 +197,6 @@ function remove(id) {
         >{{ t('notes') }}<textarea v-model="draft.notes" maxlength="2000" />
       </label>
     </div>
-    <p id="measurement-date-hint" class="small muted">{{ t('measurementDateHint') }}</p>
     <CalculatedBodyFields :measurement="draft" :profile="profile" :date="draft.measuredAt.slice(0, 10)" />
     <p class="small muted">{{ t('measuredRmrHint') }}</p>
     <p v-if="invalid" class="error" role="alert">{{ t('invalid') }}</p>
