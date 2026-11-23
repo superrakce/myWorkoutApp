@@ -7,6 +7,7 @@ import {
   timeline,
   duration,
   rmr,
+  restingEstimate,
   energy,
   intake,
   rangeSets,
@@ -192,5 +193,31 @@ describe('energy and nutrition', () => {
     }
     expect(dailyStats(data, '2026-11-21').balance).toBe(400)
     expect(2000 - 1600 - 300).toBe(100)
+  })
+})
+
+describe('resting estimate diagnostics', () => {
+  const m = { weight: 70, height: 175 }
+  const p = { age: 30, sex: 'male', ageDate: '2026-11-23' }
+  it('reports the specific missing profile fields despite available BMI data', () => {
+    expect(restingEstimate(m, {}, '2026-11-23')).toEqual({
+      value: null, reason: 'missing', missing: ['age', 'sex'],
+    })
+    expect(restingEstimate(m, { ...p, age: '' }, '2026-11-23').missing).toEqual(['age'])
+  })
+  it('normalizes imported numbers and returns finite results', () => {
+    expect(rmr({ weight: '70', height: '175' }, { ...p, age: '30' }, '2027-11-23')).toBe(1643.75)
+    expect(restingEstimate({ ...m, weight: Infinity }, p, '2026-11-23').value).toBeNull()
+    expect(rmr({ ...m, rmr: Infinity }, p, '2026-11-23')).toBe(1648.75)
+  })
+  it('validates the age on the selected date and rejects invalid dates', () => {
+    expect(restingEstimate(m, { ...p, age: 59 }, '2027-11-23').reason).toBe('ageRange')
+    expect(restingEstimate(m, { ...p, age: 18 }, '2027-11-23').value).toBe(1703.75)
+    expect(restingEstimate(m, p, 'not-a-date').reason).toBe('date')
+    expect(restingEstimate(m, { ...p, ageDate: '2026-02-30' }, '2026-11-23').reason).toBe('date')
+  })
+  it('keeps measured energy distinct from the automatic estimate', () => {
+    expect(rmr({ ...m, rmr: 1500 }, p, '2026-11-23')).toBe(1500)
+    expect(restingEstimate({ ...m, rmr: 1500 }, p, '2026-11-23').value).toBe(1648.75)
   })
 })

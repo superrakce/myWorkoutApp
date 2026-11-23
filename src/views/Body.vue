@@ -1,9 +1,10 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Trash2, Pencil } from 'lucide-vue-next'
 import { useAppStore } from '../stores/app.js'
-import { uid, localDate, clone, rmr } from '../services/domain.js'
+import { uid, localDate, clone, rmr, restingEstimate, measurementAt } from '../services/domain.js'
+import CalculatedBodyFields from '../components/body/CalculatedBodyFields.vue'
 const store = useAppStore(),
   { t, n } = useI18n(),
   profile = ref(clone(store.data.profile)),
@@ -37,12 +38,31 @@ const fields = ['height', 'weight', 'bodyFat', 'fatMass', 'muscle', 'skeletal', 
   history = computed(() =>
     store.data.measurements.slice().sort((a, b) => b.measuredAt.localeCompare(a.measuredAt)),
   ),
-  latest = computed(() => history.value[0]),
-  resting = computed(() => rmr(latest.value, store.data.profile, localDate()))
+  latest = computed(() => measurementAt(store.data.measurements, localDate(new Date(), store.data.settings.timeZone), store.data.settings.timeZone)),
+  resting = computed(() => rmr(latest.value, store.data.profile, localDate(new Date(), store.data.settings.timeZone))),
+  restingHelp = computed(() => {
+    const result = restingEstimate(latest.value, store.data.profile, localDate(new Date(), store.data.settings.timeZone))
+    if (resting.value !== null) return ''
+    if (result.reason === 'missing') return t('rmrMissing', { fields: result.missing.map((key) => t(key)).join('、') })
+    return t(result.reason === 'ageRange' ? 'rmrAgeRange' : 'rmrDateInvalid')
+  })
+watch(() => store.data.profile, (value) => { profile.value = clone(value) }, { deep: true })
+function validProfile() {
+  const age = profile.value.age
+  return (age == null || age === '' || (Number.isFinite(Number(age)) && age > 0 && age <= 120)) &&
+    /^\d{4}-\d{2}-\d{2}$/.test(profile.value.ageDate || '')
+}
+async function saveProfile() {
+  invalid.value = !validProfile()
+  if (invalid.value) return
+  store.data.profile = clone(profile.value)
+  try { await store.persist(); saved.value = true } catch {}
+}
 async function save() {
   invalid.value = false
   const d = clone(draft.value)
   if (
+    !validProfile() ||
     !(d.weight >= 10 && d.weight <= 500) ||
     (d.height !== '' && !(d.height >= 50 && d.height <= 260)) ||
     fields.some((k) => d[k] !== '' && (!Number.isFinite(Number(d[k])) || Number(d[k]) < 0)) ||
@@ -121,10 +141,12 @@ function remove(id) {
       <div class="metric-number">
         {{ resting === null ? '—' : n(resting, { maximumFractionDigits: 0 }) }}<small>kcal</small>
       </div>
+      <p v-if="restingHelp" class="small muted">{{ restingHelp }}</p>
     </article>
   </div>
   <form class="panel body-form" @submit.prevent="save">
     <h2>{{ t('addMeasurement') }}</h2>
+    <p class="small muted">{{ t('savedMetricsHint') }}</p>
     <div class="form-grid three">
       <label
         >{{ t('age') }}<input type="number" min="1" max="120" v-model.number="profile.age" /></label
@@ -136,7 +158,11 @@ function remove(id) {
           <option value="male">{{ t('male') }}</option>
           <option value="female">{{ t('female') }}</option>
         </select></label
-      ><label
+      >
+    </div>
+    <button type="button" class="button" @click="saveProfile">{{ t('saveProfile') }}</button>
+    <div class="form-grid three">
+      <label
         >{{ t('date') }}<input type="datetime-local" v-model="draft.measuredAt" required /></label
       ><label v-for="k in fields" :key="k"
         >{{ t(labels[k])
@@ -155,6 +181,8 @@ function remove(id) {
         >{{ t('notes') }}<textarea v-model="draft.notes" maxlength="2000" />
       </label>
     </div>
+    <CalculatedBodyFields :measurement="draft" :profile="profile" :date="draft.measuredAt.slice(0, 10)" />
+    <p class="small muted">{{ t('measuredRmrHint') }}</p>
     <p v-if="invalid" class="error" role="alert">{{ t('invalid') }}</p>
     <p v-if="saved" role="status">{{ t('saved') }}</p>
     <p class="small muted">{{ t('bodyLimit') }}</p>

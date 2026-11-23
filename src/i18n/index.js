@@ -2,6 +2,15 @@ import { createI18n } from 'vue-i18n'
 import { syncPairs } from './sync.js'
 const pairs = {
   ...syncPairs,
+  autoCalculated: ['Calculated automatically · read only', '系統自動計算・唯讀'],
+  calculatedHint: ['Updates as you type. Save the measurement to include it in your records.', '隨填寫即時更新；儲存量測後才會納入正式紀錄。'],
+  estimatedRmrField: ['Estimated resting energy (kcal/day)', '估計靜息代謝（kcal／日）'],
+  rmrMissing: ['To estimate resting energy, complete: {fields}.', '估計靜息代謝尚需填寫：{fields}。'],
+  rmrAgeRange: ['The estimated age on this date must be 19–59. You may enter a measured value with its source.', '該日期的推算年齡須為 19～59 歲；可另輸入有來源的實測值。'],
+  rmrDateInvalid: ['Check the measurement date and age reference date.', '請確認量測日期與年齡基準日期有效。'],
+  saveProfile: ['Save age and formula parameter', '儲存年齡與公式參數'],
+  savedMetricsHint: ['The cards above show saved measurements applicable today. The read-only fields below preview this form.', '上方顯示今日適用的已儲存量測；下方唯讀欄位即時預覽本次輸入。'],
+  measuredRmrHint: ['Measured resting energy is an optional device result. Leave it blank to use the automatic estimate. It is separate from the read-only estimate.', '「實測靜息代謝」為選填的設備量測值，留空即可使用自動估算；與唯讀的估計值分開。'],
   exerciseEyebrow: ['Move with intention', '每個動作，都有方向'],
   planEyebrow: ['Your training, your way', '用你的方式，安排訓練'],
   historyEyebrow: ['Every session counts', '每場訓練，都是累積'],

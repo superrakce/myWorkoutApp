@@ -144,26 +144,35 @@ export function duration(p) {
   const t = timeline(p)
   return t.some((s) => s.seconds === null) ? null : t.reduce((a, s) => a + s.seconds, 0)
 }
+// Keep estimates separate from device measurements; never persist a derived RMR as measured.
+export function restingEstimate(m, profile = {}, date) {
+  const missing = []
+  const weight = Number(m?.weight), height = Number(m?.height), age = Number(profile.age)
+  if (!(Number.isFinite(weight) && weight > 0)) missing.push('bodyWeight')
+  if (!(Number.isFinite(height) && height > 0)) missing.push('height')
+  if (!(Number.isFinite(age) && age > 0)) missing.push('age')
+  if (!['male', 'female'].includes(profile.sex)) missing.push('sex')
+  if (missing.length) return { value: null, reason: 'missing', missing }
+  const target = String(date || '').slice(0, 10)
+  const reference = String(profile.ageDate || target).slice(0, 10)
+  const validDate = (s) => /^\d{4}-\d{2}-\d{2}$/.test(s) &&
+    Number.isFinite(Date.parse(s)) && new Date(s).toISOString().slice(0, 10) === s
+  if (!validDate(target) || !validDate(reference))
+    return { value: null, reason: 'date', missing: [] }
+  let elapsed = Number(target.slice(0, 4)) - Number(reference.slice(0, 4))
+  if (target.slice(5) < reference.slice(5)) elapsed--
+  const effectiveAge = age + elapsed
+  if (effectiveAge < 19 || effectiveAge > 59)
+    return { value: null, reason: 'ageRange', missing: [] }
+  return {
+    value: 10 * weight + 6.25 * height - 5 * effectiveAge + (profile.sex === 'male' ? 5 : -161),
+    reason: null, missing: [],
+  }
+}
 export function rmr(m, profile, date) {
-  if (!m) return null
-  if (m.rmr > 0) return m.rmr
-  if (!(
-    m.weight > 0 &&
-    m.height > 0 &&
-    profile.age >= 19 &&
-    profile.age <= 59 &&
-    ['male', 'female'].includes(profile.sex)
-  ))
-    return null
-  const elapsed = Math.floor(
-    (new Date(date) - new Date(profile.ageDate || date)) / (365.2425 * 86400000),
-  )
-  return (
-    10 * m.weight +
-    6.25 * m.height -
-    5 * (profile.age + elapsed) +
-    (profile.sex === 'male' ? 5 : -161)
-  )
+  const measured = Number(m?.rmr)
+  if (Number.isFinite(measured) && measured > 0) return measured
+  return restingEstimate(m, profile, date).value
 }
 export function energy(met, weight, minutes, resting) {
   if (!(met > 0 && weight > 0 && minutes > 0)) return { gross: null, net: null }
