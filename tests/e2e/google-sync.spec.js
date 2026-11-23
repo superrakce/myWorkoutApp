@@ -4,9 +4,11 @@ function cloudStorage(){return {users:new Map(),next:1,reject:false}}
 async function mockGoogle(page,cloud){
  await page.addInitScript(()=>{localStorage.setItem('form-locale','en');window.mockAccount='user_a';window.mockExpires=3600})
  await page.route('https://accounts.google.com/gsi/client',route=>route.fulfill({contentType:'application/javascript',body:`window.google={accounts:{oauth2:{initTokenClient(options){return {requestAccessToken(){window.mockAuthRequests=(window.mockAuthRequests||0)+1;queueMicrotask(()=>options.callback({access_token:'mock-access-'+window.mockAccount,expires_in:window.mockExpires,scope:options.scope}))}}},revoke(token,callback){callback({})}}}}`}))
- await page.route('https://openidconnect.googleapis.com/v1/userinfo',route=>{
+ await page.route('https://openidconnect.googleapis.com/v1/userinfo',async route=>{
   if(route.request().method()==='OPTIONS')return route.fulfill({status:204,headers:{'access-control-allow-origin':'*','access-control-allow-methods':'GET,POST,DELETE,OPTIONS','access-control-allow-headers':'authorization,content-type'}})
   const sub=route.request().headers().authorization.replace('Bearer mock-access-','')
+  const status=await cloud.beforeUserInfo?.()
+  if(status)return route.fulfill({status,json:{},headers:{'access-control-allow-origin':'*'}})
   return route.fulfill({json:{sub,name:sub==='user_a'?'User A':'User B',email:sub+'@example.test'},headers:{'access-control-allow-origin':'*'}})
  })
  await page.route('https://www.googleapis.com/**',async route=>{
@@ -15,6 +17,7 @@ async function mockGoogle(page,cloud){
   const headers={'access-control-allow-origin':'*'}
   if(!cloud.users.has(sub))cloud.users.set(sub,new Map())
   const files=cloud.users.get(sub)
+  await cloud.beforeDrive?.(request)
   if(cloud.reject)return route.fulfill({status:401,json:{error:{message:'expired'}},headers})
   if(request.method()==='POST'){
     const boundary=request.headers()['content-type'].split('boundary=')[1]
@@ -208,3 +211,66 @@ test('restoration rejects a token from another account without sending Drive req
  expect(cloud.users.has('user_b')).toBe(false)
  await page.goto('/#/nutrition');await expect(page.getByText('Mismatch keeps my meal',{exact:true})).toBeVisible()
 })
+
+test('a rapid network reconnect restarts an interrupted session check', async ({page})=>{
+ const cloud=cloudStorage();await mockGoogle(page,cloud);await login(page)
+ let checks=0
+ const firstCheck=Promise.withResolvers(),release=Promise.withResolvers()
+ cloud.beforeUserInfo=async()=>{
+  if(++checks===1){firstCheck.resolve();await release.promise;return 503}
+ }
+ try{
+  await page.reload();await firstCheck.promise
+  await expect(page.getByTestId('sync-status')).toHaveText('Restoring Google session')
+  await page.context().setOffline(true)
+  await expect(page.getByTestId('sync-status')).toHaveText('Offline · saved locally')
+  await page.context().setOffline(false)
+  await expect(page.getByTestId('sync-status')).toHaveText('Synced to your Drive',{timeout:5000})
+  expect(checks).toBe(2)
+  expect(await page.evaluate(()=>window.mockAuthRequests||0)).toBe(0)
+ }finally{release.resolve()}
+})
+
+test('a temporary userinfo failure can be retried without Google consent', async ({page})=>{
+ const cloud=cloudStorage();await mockGoogle(page,cloud);await login(page)
+ cloud.beforeUserInfo=()=>503
+ await page.reload()
+ await expect(page.getByTestId('sync-status')).toHaveText('Sync failed · local data kept')
+ await expect(page.getByText('user_a@example.test',{exact:true})).toBeVisible()
+ cloud.beforeUserInfo=null
+ await syncNow(page)
+ expect(await page.evaluate(()=>window.mockAuthRequests||0)).toBe(0)
+})
+
+for(const action of ['Sign out','Switch account']){
+ test(`${action} cancels a stalled sync and retains the previous account’s pending changes`, async ({page})=>{
+  const cloud=cloudStorage();await mockGoogle(page,cloud);await login(page)
+  await addMeal(page,'Pending account A meal')
+  await page.goto('/#/settings')
+  const started=Promise.withResolvers(),release=Promise.withResolvers()
+  let requests=0
+  cloud.beforeDrive=async()=>{
+   if(++requests===1){started.resolve();await release.promise}
+  }
+  await page.getByRole('button',{name:'Sync now',exact:true}).click()
+  await started.promise
+  const status=page.getByTestId('sync-status')
+  try{
+   await expect(status).toHaveText('Syncing')
+   await page.evaluate(()=>{window.mockAccount='user_b'})
+   await page.getByRole('button',{name:action,exact:true}).click({timeout:5000})
+   await expect(page.getByText('user_a@example.test',{exact:true})).toHaveCount(0)
+   await expect(status).toHaveText('Saved locally')
+   await page.reload()
+   if(action==='Sign out')await expect(page.getByRole('button',{name:'Sign in with Google',exact:true})).toBeVisible()
+   else await expect(page.getByText('user_b@example.test',{exact:true})).toBeVisible()
+  }finally{release.resolve()}
+  await page.goto('/#/nutrition')
+  await expect(page.getByText('Pending account A meal',{exact:true})).toHaveCount(0)
+  expect(requests).toBe(1)
+  await login(page)
+  await page.goto('/#/nutrition')
+  await expect(page.getByText('Pending account A meal',{exact:true})).toBeVisible()
+  expect([...cloud.users.get('user_a').values()].some(file=>file.event.value?.name==='Pending account A meal')).toBe(true)
+ })
+}
