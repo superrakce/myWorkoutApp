@@ -12,13 +12,14 @@ export const useAppStore=defineStore('app',()=>{
   const data=ref(freshData()),ready=ref(false),error=ref(''),notice=ref(''),
     scope=ref('guest'),identity=ref(null),sync=ref(emptySync()),epoch=ref(0)
   let saving=Promise.resolve(),timer,baseline=clone(data.value)
+  const revisions={guest:0}
   const listeners=new Set()
   function checked(value){return validateBackup({schemaVersion:1,data:value})}
   function workspace(){return {data:clone(data.value),sync:clone(sync.value)}}
   async function init(){
     try{
       const stored=await readWorkspace()
-      if(stored){data.value=checked(stored.data);sync.value=stored.sync||emptySync()}
+      if(stored){data.value=checked(stored.data);sync.value=stored.sync||emptySync();revisions.guest=stored.revision||0}
       if(data.value.active&&!['completed','aborted'].includes(data.value.active.status)){
         data.value.active.status='paused';notice.value='restored'
       }
@@ -32,9 +33,10 @@ export const useAppStore=defineStore('app',()=>{
     if(savedScope!=='guest')sync.value=capture(sync.value,baseline,data.value)
     baseline=clone(data.value)
     const snapshot=workspace(),changed=sync.value.pending.length>oldPending
-    saving=saving.catch(()=>{}).then(()=>writeWorkspace(savedScope,snapshot)).then(()=>{
+    saving=saving.catch(()=>{}).then(()=>writeWorkspace(savedScope,snapshot,revisions[savedScope]||0)).then(revision=>{
+      revisions[savedScope]=revision
       if(changed&&savedScope===scope.value)for(const fn of listeners)fn()
-    }).catch(()=>{error.value='storageError';throw Error('storageError')})
+    }).catch(e=>{error.value=e.message==='syncLocalChanged'?'syncLocalChanged':'storageError';throw e})
     return saving
   }
   watch(data,()=>{
@@ -47,6 +49,7 @@ export const useAppStore=defineStore('app',()=>{
     await persist()
     const stored=await readWorkspace(nextScope)
     const next=stored?checked(stored.data):freshData()
+    revisions[nextScope]=stored?.revision||0
     ready.value=false;epoch.value++;scope.value=nextScope;identity.value=person
     data.value=next;sync.value=stored?.sync||emptySync()
     if(data.value.active&&!['completed','aborted'].includes(data.value.active.status))data.value.active.status='paused'
@@ -63,17 +66,22 @@ export const useAppStore=defineStore('app',()=>{
   function toggleFavorite(id){const i=data.value.favorites.indexOf(id);if(i<0)data.value.favorites.push(id);else data.value.favorites.splice(i,1)}
   function backup(){return {schemaVersion:1,dataVersion:'2026-11-v1',mappingVersion:1,exportedAt:new Date().toISOString(),data:clone(data.value)}}
   async function restore(b){
+    const expected=scope.value
     const restored=clone(checked(b.data))
     if(b.schemaVersion!==1)throw Error('invalidBackup')
     if(restored.active&&!['completed','aborted'].includes(restored.active.status))restored.active.status='paused'
     await saving.catch(()=>{})
+    if(scope.value!==expected)throw Error('syncAccountChanged')
     if(scope.value!=='guest'){sync.value.enabled=false;sync.value.reviewRequired=true}
     data.value=restored;await persist()
   }
   async function reset(){
+    const expected=scope.value
     await persist()
+    if(scope.value!==expected)throw Error('syncAccountChanged')
     const next=freshData(),meta=emptySync()
-    await writeWorkspace(scope.value,{data:next,sync:meta})
+    revisions[expected]=await writeWorkspace(expected,{data:next,sync:meta},revisions[expected]||0)
+    if(scope.value!==expected)throw Error('syncAccountChanged')
     ready.value=false;data.value=next;sync.value=meta;baseline=clone(next);ready.value=true
   }
   async function applyRemote(expectedScope,events,uploaded,files,isCurrent=()=>true){
@@ -90,8 +98,10 @@ export const useAppStore=defineStore('app',()=>{
     ready.value=false;sync.value=next;data.value=result;baseline=clone(result);ready.value=true;await persist()
   }
   async function importGuest(expected){
+    const expectedScope=scope.value
     if(scope.value==='guest')return
     const guest=(await readWorkspace('guest'))?.data
+    if(scope.value!==expectedScope)throw Error('syncAccountChanged')
     if(!guest)return
     if(expected&&JSON.stringify(guest)!==expected)throw Error('syncGuestChanged')
     const result=importRecords(sync.value,data.value,checked(guest),freshData())

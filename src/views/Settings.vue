@@ -141,7 +141,7 @@ function zone(e) {
         ><label class="button soft upload"
           ><Upload :size="18" />{{ t('restore')
           }}<input type="file" accept="application/json,.json" @change="file" /></label
-        ><button class="button danger" @click="clear">{{ t('erase') }}</button>
+        ><button class="button danger" :disabled="cloud.busy || cloud.authBusy" @click="clear">{{ t('erase') }}</button>
       </div>
     </section>
     <section class="panel full">

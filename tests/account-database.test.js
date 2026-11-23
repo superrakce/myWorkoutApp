@@ -12,5 +12,14 @@ it('keeps anonymous and Google account data in separate IndexedDB keys',async()=
 it('stores business data and outbox checkpoints atomically without credentials',async()=>{
  const workspace={data:{name:'current'},sync:{events:[{id:'revision_0001'}],pending:['revision_0001']}}
  await writeWorkspace('google:checkpoint',workspace)
- expect(await readWorkspace('google:checkpoint')).toEqual(workspace)
+ expect(await readWorkspace('google:checkpoint')).toMatchObject(workspace)
+})
+
+it('rejects stale writes from another tab without overwriting either saved record',async()=>{
+ const key='google:two_tabs'
+ await writeWorkspace(key,{data:{name:'initial'}},0)
+ const first=await readWorkspace(key),second=await readWorkspace(key)
+ await writeWorkspace(key,{data:{name:'first tab saved'}},first.revision)
+ await expect(writeWorkspace(key,{data:{name:'stale second tab'}},second.revision)).rejects.toThrow('syncLocalChanged')
+ expect((await readWorkspace(key)).data.name).toBe('first tab saved')
 })

@@ -130,6 +130,7 @@ export const useSyncStore=defineStore('sync',()=>{
       const drive=createDriveClient({getToken:()=>googleIdentity.access(app.identity.sub)})
       await drive.deleteCloud()
       app.sync.files={};app.sync.lastSync=null;app.sync.reviewRequired=true
+      app.sync.pending=app.sync.events.map(e=>e.id)
       await app.persist();status.value='syncCloudDeleted'
     }catch(e){setError(e)}finally{busy.value=false}
   }

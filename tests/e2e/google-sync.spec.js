@@ -38,7 +38,7 @@ async function login(page,account='user_a'){
  await page.evaluate(account=>{window.mockAccount=account},account)
  await page.getByRole('button',{name:'Sign in with Google',exact:true}).click()
  await expect(page.getByText(account+'@example.test',{exact:true})).toBeVisible()
- await page.getByRole('button',{name:'Enable Google Drive sync',exact:true}).click()
+ await page.getByRole('button',{name:/^(Enable Google Drive sync|Reconnect Google Drive)$/}).click()
  await expect(page.getByTestId('sync-status')).toHaveText('Synced to your Drive')
 }
 async function addMeal(page,name){

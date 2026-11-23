@@ -18,14 +18,21 @@ export async function readWorkspace(scope='guest') {
     tx.onerror=()=>{db.close();reject(tx.error)}
   })
 }
-export async function writeWorkspace(scope,workspace) {
+export async function writeWorkspace(scope,workspace,expectedRevision) {
   const db=await openDatabase()
   return new Promise((resolve,reject)=>{
-    const tx=db.transaction('state','readwrite')
-    tx.objectStore('state').put(JSON.parse(JSON.stringify(workspace)),'workspace:'+scope)
-    tx.oncomplete=()=>{db.close();resolve()}
+    const tx=db.transaction('state','readwrite'),store=tx.objectStore('state')
+    let revision=0,conflict=false
+    const read=store.get('workspace:'+scope)
+    read.onsuccess=()=>{
+      revision=read.result?.revision||0
+      if(expectedRevision!==undefined&&expectedRevision!==revision){conflict=true;tx.abort();return}
+      revision++
+      store.put({...JSON.parse(JSON.stringify(workspace)),revision},'workspace:'+scope)
+    }
+    tx.oncomplete=()=>{db.close();resolve(revision)}
     tx.onerror=()=>{db.close();reject(tx.error)}
-    tx.onabort=()=>{db.close();reject(tx.error)}
+    tx.onabort=()=>{db.close();reject(conflict?Error('syncLocalChanged'):tx.error||Error('storageError'))}
   })
 }
 export async function readData(scope='guest'){return (await readWorkspace(scope))?.data}

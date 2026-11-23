@@ -250,5 +250,9 @@ export const syncPairs = {
   "syncCloudDeleted": [
     "Cloud copies deleted · local data kept",
     "雲端副本已刪除 · 保留本機資料"
+  ],
+  "syncLocalChanged": [
+    "Another tab changed this account’s data. Export this page’s backup, then reload and sign in again before saving.",
+    "另一個分頁已修改此帳號的資料。請先匯出本頁備份，再重新整理並登入後繼續保存，避免覆蓋。"
   ]
 }
