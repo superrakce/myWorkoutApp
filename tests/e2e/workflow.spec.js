@@ -209,7 +209,7 @@ test('a custom Tabata starts from the plan card, rings at each phase, and can be
   await expect(page.getByLabel('Rounds', { exact: true })).toHaveValue('8')
   await page.getByLabel('Rounds', { exact: true }).fill('2')
   await page.getByLabel('Preparation (Seconds)', { exact: true }).fill('1')
-  await page.getByLabel('Interval rest (Seconds)', { exact: true }).fill('1')
+  await page.getByLabel('Interval rest (Seconds)', { exact: true }).fill('3')
   await page.getByLabel('Cooldown (Seconds)', { exact: true }).fill('1')
   await page.getByRole('button', { name: 'Add', exact: true }).click()
   await page.getByRole('textbox', { name: 'Search exercises in English or Chinese' }).fill('Bodyweight squat')
@@ -226,13 +226,13 @@ test('a custom Tabata starts from the plan card, rings at each phase, and can be
   await expect(page.getByText('Get ready', { exact: true })).toBeVisible()
   await expect(page.getByRole('button', { name: 'Start training', exact: true })).toHaveCount(0)
   await expectStrikes(0)
-  for (const [label, strikes] of [
-    ['Time to move', 1],
-    ['Take a breath', 2],
-    ['Time to move', 1],
-    ['Ease into your cooldown', 2],
+  for (const [duration, label, strikes] of [
+    [1100, 'Time to move', 1],
+    [1100, 'Take a breath', 4], // Two transition strikes plus two countdown notes.
+    [3100, 'Time to move', 1],
+    [1100, 'Ease into your cooldown', 2],
   ]) {
-    await page.clock.runFor(1100)
+    await page.clock.runFor(duration)
     await expect(page.getByText(label, { exact: true }).first()).toBeVisible()
     await expectStrikes(strikes)
   }
@@ -251,6 +251,49 @@ test('a custom Tabata starts from the plan card, rings at each phase, and can be
   expect(backup.data.active).toBeNull()
 })
 
+
+test('Tabata plays distinct three-second cues once per timed work and rest stage', async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem('form-locale', 'en')
+    window.countdownNotes = []
+    const start = OscillatorNode.prototype.start
+    OscillatorNode.prototype.start = function (time) {
+      start.call(this, time)
+      if ([420, 900, 1220].includes(this.frequency.value)) {
+        window.countdownNotes.push(this.frequency.value)
+      }
+    }
+  })
+  const notes = () => page.evaluate(() => window.countdownNotes)
+  const time = new Date('2026-01-01T10:00:00Z')
+  await page.clock.install({ time })
+  await page.clock.pauseAt(new Date(time.getTime() + 1000))
+  await page.goto('/#/plans')
+  const tabata = page.getByRole('article').filter({ hasText: '4-minute intervals' })
+  await tabata.getByRole('button', { name: 'Start Tabata', exact: true }).click()
+  await expect(page.getByText('Get ready', { exact: true })).toBeVisible()
+
+  await page.clock.runFor(21800)
+  await expect(page.locator('.timer')).toHaveText(/^4\s*Seconds$/)
+  expect(await notes()).toEqual([])
+  await page.clock.runFor(500)
+  await expect(page.locator('.timer')).toHaveText(/^3\s*Seconds$/)
+  await expect.poll(notes).toEqual([420])
+
+  await page.getByRole('button', { name: 'Pause', exact: true }).click()
+  await page.clock.runFor(2000)
+  await page.getByRole('button', { name: 'Resume', exact: true }).click()
+  await page.clock.runFor(9500)
+  await expect(page.getByText('Take a breath', { exact: true }).first()).toBeVisible()
+  await expect(page.locator('.timer')).toHaveText(/^4\s*Seconds$/)
+  expect(await notes()).toEqual([420])
+  await page.clock.runFor(600)
+  await expect(page.locator('.timer')).toHaveText(/^3\s*Seconds$/)
+  await expect.poll(notes).toEqual([420, 900, 1220])
+  await page.clock.runFor(3200)
+  await expect(page.getByText('Time to move', { exact: true })).toBeVisible()
+  expect(await notes()).toEqual([420, 900, 1220])
+})
 
 test('the player can preview and mute the bell before starting', async ({ page }) => {
   await page.addInitScript(() => {
