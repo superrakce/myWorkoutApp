@@ -209,7 +209,7 @@ test('a custom Tabata starts from the plan card, rings at each phase, and can be
   await expect(page.getByLabel('Rounds', { exact: true })).toHaveValue('8')
   await page.getByLabel('Rounds', { exact: true }).fill('2')
   await page.getByLabel('Preparation (Seconds)', { exact: true }).fill('1')
-  await page.getByLabel('Interval rest (Seconds)', { exact: true }).fill('3')
+  await page.getByLabel('Interval rest (Seconds)', { exact: true }).fill('1')
   await page.getByLabel('Cooldown (Seconds)', { exact: true }).fill('1')
   await page.getByRole('button', { name: 'Add', exact: true }).click()
   await page.getByRole('textbox', { name: 'Search exercises in English or Chinese' }).fill('Bodyweight squat')
@@ -227,9 +227,9 @@ test('a custom Tabata starts from the plan card, rings at each phase, and can be
   await expect(page.getByRole('button', { name: 'Start training', exact: true })).toHaveCount(0)
   await expectStrikes(0)
   for (const [duration, label, strikes] of [
-    [1100, 'Time to move', 1],
-    [1100, 'Take a breath', 4], // Two transition strikes plus two countdown notes.
-    [3100, 'Time to move', 1],
+    [1100, 'Time to move', 2],
+    [1100, 'Take a breath', 3],
+    [1100, 'Time to move', 2],
     [1100, 'Ease into your cooldown', 2],
   ]) {
     await page.clock.runFor(duration)
@@ -252,15 +252,15 @@ test('a custom Tabata starts from the plan card, rings at each phase, and can be
 })
 
 
-test('Tabata plays distinct three-second cues once per timed work and rest stage', async ({ page }) => {
+test('Tabata plays one distinct key tone at 3, 2 and 1 for timed work and rest', async ({ page }) => {
   await page.addInitScript(() => {
     localStorage.setItem('form-locale', 'en')
     window.countdownNotes = []
     const start = OscillatorNode.prototype.start
     OscillatorNode.prototype.start = function (time) {
       start.call(this, time)
-      if ([420, 900, 1220].includes(this.frequency.value)) {
-        window.countdownNotes.push(this.frequency.value)
+      if ([520, 620, 740, 1120, 980, 840].includes(this.frequency.value)) {
+        window.countdownNotes.push([this.frequency.value, this.type])
       }
     }
   })
@@ -278,21 +278,34 @@ test('Tabata plays distinct three-second cues once per timed work and rest stage
   expect(await notes()).toEqual([])
   await page.clock.runFor(500)
   await expect(page.locator('.timer')).toHaveText(/^3\s*Seconds$/)
-  await expect.poll(notes).toEqual([420])
+  const work = [[520, 'triangle']]
+  await expect.poll(notes).toEqual(work)
 
   await page.getByRole('button', { name: 'Pause', exact: true }).click()
   await page.clock.runFor(2000)
+  expect(await notes()).toEqual(work)
   await page.getByRole('button', { name: 'Resume', exact: true }).click()
-  await page.clock.runFor(9500)
+  for (const [second, frequency] of [[2, 620], [1, 740]]) {
+    await page.clock.runFor(1000)
+    work.push([frequency, 'triangle'])
+    await expect(page.locator('.timer')).toHaveText(new RegExp('^' + second + '\\s*Seconds$'))
+    await expect.poll(notes).toEqual(work)
+  }
+
+  await page.clock.runFor(7500)
   await expect(page.getByText('Take a breath', { exact: true }).first()).toBeVisible()
   await expect(page.locator('.timer')).toHaveText(/^4\s*Seconds$/)
-  expect(await notes()).toEqual([420])
-  await page.clock.runFor(600)
-  await expect(page.locator('.timer')).toHaveText(/^3\s*Seconds$/)
-  await expect.poll(notes).toEqual([420, 900, 1220])
-  await page.clock.runFor(3200)
+  expect(await notes()).toEqual(work)
+  const allNotes = [...work]
+  for (const [elapsed, second, frequency] of [[600, 3, 1120], [1000, 2, 980], [1000, 1, 840]]) {
+    await page.clock.runFor(elapsed)
+    allNotes.push([frequency, 'sine'])
+    await expect(page.locator('.timer')).toHaveText(new RegExp('^' + second + '\\s*Seconds$'))
+    await expect.poll(notes).toEqual(allNotes)
+  }
+  await page.clock.runFor(1200)
   await expect(page.getByText('Time to move', { exact: true })).toBeVisible()
-  expect(await notes()).toEqual([420, 900, 1220])
+  expect(await notes()).toEqual(allNotes)
 })
 
 test('the player can preview and mute the bell before starting', async ({ page }) => {

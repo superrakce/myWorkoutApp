@@ -7,14 +7,23 @@ const partials = [
   { frequency: 3527, level: 0.12, decay: 0.03 },
 ]
 const strikes = { working: 1, resting: 2, cooldown: 2, completed: 3 }
-const countdownTones = { workingEnding: [420], restingEnding: [900, 1220] }
+// Frequencies are indexed by the second on screen, so work rises and rest falls from 3 to 1.
+const countdownTones = {
+  workingEnding: { frequencies: [740, 620, 520], type: 'triangle' },
+  restingEnding: { frequencies: [840, 980, 1120], type: 'sine' },
+}
 
-function countdownPattern(cue, offset = 0) {
-  return (countdownTones[cue] || []).map((frequency, index) => ({
-    offset: offset + index * 0.12,
-    duration: 0.16,
-    modes: [{ frequency, level: 0.5, decay: 0.042 }],
-  }))
+function countdownTone(cue, second, offset = 0) {
+  const sound = countdownTones[cue]
+  const frequency = sound?.frequencies[second - 1]
+  if (!frequency) return []
+  return [
+    {
+      offset,
+      duration: 0.09,
+      modes: [{ frequency, type: sound.type, level: 0.5, decay: 0.02 }],
+    },
+  ]
 }
 
 let context
@@ -44,7 +53,7 @@ export function stopWorkoutBell() {
   output = undefined
 }
 
-export async function playWorkoutBell(phase, volume, startsAtThree = false) {
+export async function playWorkoutBell(phase, volume, countdownSecond) {
   if (!context || !volume || document.hidden) return
   const pattern = strikes[phase]
     ? Array.from({ length: strikes[phase] }, (_, index) => ({
@@ -52,9 +61,9 @@ export async function playWorkoutBell(phase, volume, startsAtThree = false) {
         duration: 1.4,
         modes: partials,
       }))
-    : countdownPattern(phase)
-  // A three-second stage starts with the usual bell, then plays the warning before the timer shows 2.
-  if (startsAtThree) pattern.push(...countdownPattern(phase + 'Ending', 0.55))
+    : countdownTone(phase, countdownSecond)
+  // Very short stages enter the countdown immediately. Leave room for the transition bell first.
+  if (strikes[phase]) pattern.push(...countdownTone(phase + 'Ending', countdownSecond, 0.45))
   if (!pattern.length) return
 
   stopWorkoutBell()
@@ -74,10 +83,11 @@ export async function playWorkoutBell(phase, volume, startsAtThree = false) {
     for (const { offset, duration, modes } of pattern) {
       const at = start + offset
       const end = at + duration
-      for (const { frequency, level, decay } of modes) {
+      for (const { frequency, level, decay, type = 'sine' } of modes) {
         const oscillator = context.createOscillator()
         const envelope = context.createGain()
         oscillator.frequency.value = frequency
+        oscillator.type = type
         envelope.gain.setValueAtTime(0, at)
         envelope.gain.linearRampToValueAtTime(level, at + 0.004)
         envelope.gain.setTargetAtTime(0, at + 0.004, decay)

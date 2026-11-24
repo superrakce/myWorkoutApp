@@ -60,8 +60,8 @@ function start() {
   resume()
   playAudio()
 }
-function ring(phase, startsAtThree) {
-  playWorkoutBell(phase, store.data.settings.cueVolume, startsAtThree)
+function ring(phase, countdownSecond) {
+  playWorkoutBell(phase, store.data.settings.cueVolume, countdownSecond)
 }
 function previewBell() {
   unlockWorkoutBell()

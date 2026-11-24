@@ -75,7 +75,7 @@ export function usePlayer(plan, onCue) {
     const starting = session.value.status === 'ready'
     session.value.status = stage.value.phase
     anchor = Date.now()
-    if (starting) onCue(stage.value.phase, stage.value.seconds === 3)
+    if (starting) onCue(stage.value.phase, Math.ceil(remaining.value))
     try {
       wake = await navigator.wakeLock?.request('screen')
     } catch {}
@@ -114,8 +114,11 @@ export function usePlayer(plan, onCue) {
     const after = remaining.value
     if (after === 0) {
       advance(false, true)
-    } else if (before > 3 && after <= 3 && ['working', 'resting'].includes(stage.value.phase)) {
-      onCue(stage.value.phase + 'Ending')
+    } else if (after !== null && ['working', 'resting'].includes(stage.value.phase)) {
+      const second = Math.ceil(after)
+      if (second <= 3 && second < Math.ceil(before)) {
+        onCue(stage.value.phase + 'Ending', second)
+      }
     }
   }
   function pause() {
@@ -164,7 +167,7 @@ export function usePlayer(plan, onCue) {
       session.value.minutes = session.value.activeSeconds / 60
       wake?.release().catch(() => {})
     } else session.value.status = stage.value.phase
-    onCue(session.value.status, stage.value?.seconds === 3)
+    onCue(session.value.status, Math.ceil(remaining.value))
     checkpoint()
   }
   function end() {
