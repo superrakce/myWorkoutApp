@@ -89,12 +89,6 @@ onMounted(async () => {await store.init();sync.init()})
         <X :size="18" />
       </button>
     </div>
-    <div v-if="store.notice" class="alert" role="status">
-      {{ t(store.notice)
-      }}<button @click="store.notice = ''" :aria-label="t('close')">
-        <X :size="18" />
-      </button>
-    </div>
     <main v-if="store.ready">
       <RouterView v-slot="{ Component }"
         ><KeepAlive :key="store.epoch" include="ExerciseLibrary"><component :is="Component" /></KeepAlive

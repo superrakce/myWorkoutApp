@@ -11,7 +11,7 @@ export const freshData=()=>({
   plans:[],sessions:[],meals:[],measurements:[],exerciseLibrary:[],favorites:[],days:{},active:null,
 })
 export const useAppStore=defineStore('app',()=>{
-  const data=ref(freshData()),ready=ref(false),error=ref(''),notice=ref(''),
+  const data=ref(freshData()),ready=ref(false),error=ref(''),
     scope=ref('guest'),identity=ref(null),sync=ref(emptySync()),epoch=ref(0)
   const exercises=computed(()=>visibleExercises(data.value.exerciseLibrary||[]))
   const findExercise=id=>resolveExercise(id,data.value.exerciseLibrary||[])
@@ -48,7 +48,7 @@ export const useAppStore=defineStore('app',()=>{
       if(stored){data.value=checked(stored.data);sync.value=stored.sync||emptySync();revisions[initialScope]=stored.revision||0}
       scope.value=initialScope;identity.value=remembered
       if(data.value.active&&!['completed','aborted'].includes(data.value.active.status)){
-        data.value.active.status='paused';notice.value='restored'
+        data.value.active.status='paused'
       }
       baseline=clone(data.value)
     }catch{error.value='storageError'}
@@ -143,6 +143,6 @@ export const useAppStore=defineStore('app',()=>{
     for(const fn of listeners)fn()
   }
   const onSaved=fn=>{listeners.add(fn);return()=>listeners.delete(fn)}
-  return {exercises,findExercise,saveExercise,removeExercise,data,ready,error,notice,scope,identity,sync,epoch,init,persist,savePlan,toggleFavorite,backup,restore,reset,
+  return {exercises,findExercise,saveExercise,removeExercise,data,ready,error,scope,identity,sync,epoch,init,persist,savePlan,toggleFavorite,backup,restore,reset,
     openAccount,signOut,updateIdentity,applyRemote,resolveConflict,importGuest,onSaved}
 })

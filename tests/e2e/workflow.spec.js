@@ -151,6 +151,7 @@ test('pause checkpoint, skip, abort and reload do not duplicate sessions', async
   await page.getByRole('button', { name: 'Pause', exact: true }).click()
   await page.reload()
   await expect(page.getByText('Paused', { exact: true })).toBeVisible()
+  await expect(page.getByText('A saved workout is paused. Resume when ready.', { exact: true })).toHaveCount(0)
   await page.getByRole('button', { name: 'Resume', exact: true }).click()
   await page.getByRole('button', { name: 'End workout', exact: true }).click()
   await expect(page.getByRole('checkbox', { name: 'Confirmed complete' })).not.toBeChecked()
