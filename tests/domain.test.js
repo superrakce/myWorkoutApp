@@ -10,6 +10,7 @@ import {
   rmr,
   restingEstimate,
   energy,
+  plannedWorkoutEnergy,
   intake,
   rangeSets,
   measurementAt,
@@ -19,6 +20,7 @@ import {
 } from '../src/services/domain.js'
 const plan = {
   ...clone(templates[0]),
+  mode: 'straight',
   sets: 2,
   prepare: 0,
   cooldown: 0,
@@ -65,6 +67,13 @@ describe('workout timeline', () => {
       ['preparing', 5], ['working', 20], ['resting', 10], ['working', 20],
       ['resting', 10], ['working', 20], ['resting', 10], ['working', 20], ['cooldown', 10],
     ])
+  })
+  it('estimates plan calories from active time, MET and body weight', () => {
+    const timed = { ...templates[2], plannedMet: 6 }
+    expect(plannedWorkoutEnergy(timed, 70)).toBeCloseTo(19.6)
+    expect(plannedWorkoutEnergy(timed, undefined)).toBeNull()
+    expect(plannedWorkoutEnergy(plan, 70)).toBeNull()
+    expect(plannedWorkoutEnergy({ ...plan, plannedMet: 6, plannedActiveMinutes: 2 }, 70)).toBeCloseTo(14.7)
   })
 })
 describe('equipment semantics', () => {

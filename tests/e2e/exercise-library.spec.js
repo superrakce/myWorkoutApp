@@ -29,7 +29,7 @@ test('custom exercise CRUD, plan playback, snapshot history and backup survive r
   await page.getByRole('button', { name: 'Edit', exact: true }).first().click()
   await expect(page.getByRole('heading', { name: '1. Orbit row revised', exact: true })).toBeVisible()
   await page.getByLabel('Sets', { exact: true }).fill('1')
-  for (const key of ['Preparation', 'Between sets', 'Between exercises', 'Between rounds', 'Cooldown'])
+  for (const key of ['Preparation', 'Between exercises', 'Between rounds', 'Cooldown'])
     await page.getByLabel(key + ' (Seconds)', { exact: true }).fill('0')
   await page.getByRole('button', { name: 'Save', exact: true }).click()
   await page.getByRole('button', { name: 'Start training', exact: true }).first().click()

@@ -3,17 +3,32 @@ import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { ArrowUp, ArrowDown, Trash2, Plus } from 'lucide-vue-next'
-import { clone, validatePlan, planDistribution, duration } from '../services/domain.js'
+import {
+  clone,
+  validatePlan,
+  planDistribution,
+  duration,
+  localDate,
+  measurementAt,
+  plannedWorkoutEnergy,
+} from '../services/domain.js'
 import { useAppStore } from '../stores/app.js'
 const store = useAppStore()
 import TrainingRadar from './TrainingRadar.vue'
 const props = defineProps({ plan: { type: Object, required: true } }),
   emit = defineEmits(['save', 'cancel']),
-  { t, locale } = useI18n(),
+  { t, locale, n } = useI18n(),
   router = useRouter()
-const draft = ref(clone(props.plan)),
+const form = ref(null),
+  draft = ref(clone(props.plan)),
   invalid = ref(false),
-  radar = computed(() => planDistribution(draft.value))
+  radar = computed(() => planDistribution(draft.value)),
+  hasReps = computed(() => draft.value.items.some((item) => item.mode === 'reps')),
+  estimate = computed(() => {
+    const zone = store.data.settings.timeZone
+    const latest = measurementAt(store.data.measurements, localDate(new Date(), zone), zone)
+    return plannedWorkoutEnergy(draft.value, latest?.weight)
+  })
 const intervalRest = computed({
   get: () => draft.value.setRest,
   set: (value) => {
@@ -41,9 +56,11 @@ const playbackMode = computed({
     }
   },
 })
-const restFields = computed(() => draft.value.tabata
-  ? ['prepare', 'cooldown']
-  : ['prepare', 'setRest', 'transitionRest', 'roundRest', 'cooldown'])
+const restFields = computed(() => {
+  if (draft.value.tabata) return ['prepare', 'cooldown']
+  if (draft.value.mode === 'straight') return ['prepare', 'setRest', 'transitionRest', 'cooldown']
+  return ['prepare', 'transitionRest', 'roundRest', 'cooldown']
+})
 function move(i, d) {
   const j = i + d
   if (j < 0 || j >= draft.value.items.length) return
@@ -57,12 +74,13 @@ function save() {
   emit('save', draft.value)
 }
 function add() {
+  if (!form.value.reportValidity()) return
   const id = store.savePlan(draft.value)
   router.push({ path: '/exercises', query: { return: 'plan', plan: id } })
 }
 </script>
 <template>
-  <form @submit.prevent="save" class="editor-layout">
+  <form ref="form" @submit.prevent="save" class="editor-layout">
     <section class="panel editor-form">
       <div class="form-grid">
         <label>{{ t('name') }}<input v-model.trim="draft.name" required maxlength="120" /></label
@@ -74,7 +92,9 @@ function add() {
         ><label
           >{{ t('mode')
           }}<select v-model="playbackMode">
-            <option value="straight">{{ t('straight') }}</option>
+            <option v-if="playbackMode === 'straight'" value="straight" disabled>
+              {{ t('legacyPlanOrder') }}
+            </option>
             <option value="circuit">{{ t('circuit') }}</option>
             <option value="tabata">{{ t('tabata') }}</option>
           </select></label
@@ -141,6 +161,18 @@ function add() {
           /></label>
         </div>
       </article>
+      <div v-if="draft.items.length" class="form-grid">
+        <label>
+          {{ t('planMet') }}
+          <input type="number" min="0.1" max="25" step="0.1" :value="draft.plannedMet"
+            @input="draft.plannedMet = $event.target.value === '' ? undefined : $event.target.valueAsNumber" />
+        </label>
+        <label v-if="hasReps">
+          {{ t('planActiveMinutes') }}
+          <input type="number" min="0.1" max="1440" step="0.1" :value="draft.plannedActiveMinutes"
+            @input="draft.plannedActiveMinutes = $event.target.value === '' ? undefined : $event.target.valueAsNumber" />
+        </label>
+      </div>
       <p v-if="!draft.items.length" class="callout">{{ t('invalidPlan') }}</p>
       <p v-if="invalid" class="error" role="alert">{{ t('invalidPlan') }}</p>
       <p class="muted">
@@ -154,6 +186,30 @@ function add() {
         </button>
       </div>
     </section>
-    <aside class="panel"><TrainingRadar :data="radar" /></aside>
+    <aside class="panel">
+      <section class="plan-energy">
+        <h3>{{ t('planEnergy') }}</h3>
+        <p class="metric-number" aria-live="polite">
+          {{ estimate === null ? '—' : n(estimate, { maximumFractionDigits: 0 }) }}<small>kcal</small>
+        </p>
+        <p class="muted small">{{ t(estimate === null ? 'planEnergyMissing' : 'planEnergyHint') }}</p>
+      </section>
+      <TrainingRadar :data="radar" />
+    </aside>
   </form>
 </template>
+
+
+<style scoped>
+.plan-energy {
+  border-bottom: 1px solid var(--color-divider);
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+}
+.plan-energy h3 {
+  margin: 0 0 6px;
+}
+.plan-energy p {
+  margin: 0;
+}
+</style>

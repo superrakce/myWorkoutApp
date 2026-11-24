@@ -38,7 +38,6 @@ watch(
     try { localStorage.setItem('form-locale', l) } catch {}
     if(store.ready && store.data.settings.language!==l) store.data.settings.language=l
     document.documentElement.lang = l
-    document.title = l === 'en' ? 'FORM · Training, in balance' : 'FORM · 讓訓練回到平衡'
   },
   { immediate: true },
 )
@@ -55,7 +54,6 @@ onMounted(async () => {await store.init();sync.init()})
       ><span class="brand-mark">f<span>.</span></span
       >FORM</RouterLink
     >
-    <p class="brand-sub">{{ t('tagline') }}</p>
     <nav>
       <RouterLink
         v-for="[path, key, icon] in links"
@@ -104,7 +102,7 @@ onMounted(async () => {await store.init();sync.init()})
     </main>
     <main v-else class="loading">FORM ···</main>
     <footer class="page-footer">
-      <span>{{ t('tagline') }}</span><span>FORM / {{ new Date().getFullYear() }}</span>
+      <span>FORM / {{ new Date().getFullYear() }}</span>
     </footer>
   </div>
   <nav class="mobile-nav">

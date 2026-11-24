@@ -5,9 +5,8 @@ import { useRouter } from 'vue-router'
 import { Flame, Utensils, Activity, Plus, Play, CalendarDays, Dumbbell } from 'lucide-vue-next'
 import { useAppStore } from '../stores/app.js'
 import { templates } from '../data/catalog.js'
-import { localDate, dailyStats, distribution, rangeSets, clone } from '../services/domain.js'
+import { localDate, dailyStats, distribution, rangeSets } from '../services/domain.js'
 import TrainingRadar from '../components/TrainingRadar.vue'
-import PlanCard from '../components/PlanCard.vue'
 const store = useAppStore(),
   { t, locale, n } = useI18n(),
   router = useRouter()
@@ -33,117 +32,86 @@ function start(plan) {
   }
   router.push('/player?plan=' + plan.id)
 }
-function useTemplate(plan) {
-  const p = clone(plan)
-  p.name = p.name[locale.value]
-  p.description = p.description[locale.value]
-  p.id = null
-  const id = store.savePlan(p)
-  router.push('/plans?edit=' + id)
-}
 </script>
 <template>
-  <div class="page-heading">
+  <div class="page-heading dashboard-heading">
     <div>
       <p class="eyebrow">{{ date }}</p>
       <h1>{{ t('overview') }}</h1>
     </div>
-    <RouterLink to="/plans" class="button primary"
-      ><Plus :size="18" />{{ t('newPlan') }}</RouterLink
-    >
+    <div class="dashboard-actions">
+      <RouterLink :to="{ path: '/plans', query: { new: '1' } }" class="button primary">
+        <Plus :size="17" />{{ t('newPlan') }}
+      </RouterLink>
+      <RouterLink :to="{ path: '/nutrition', query: { new: '1' } }" class="button soft">
+        <Utensils :size="17" />{{ t('logMeal') }}
+      </RouterLink>
+      <RouterLink :to="{ path: '/body', hash: '#measurement-form' }" class="button soft">
+        <Activity :size="17" />{{ t('addMeasurement') }}
+      </RouterLink>
+      <button class="button accent" @click="start(store.data.plans[0] || templates[0])">
+        <Play :size="16" fill="currentColor" />{{ t('start') }}
+      </button>
+    </div>
   </div>
   <section class="hero">
     <div class="hero-copy">
       <p class="eyebrow"><span class="yellow-dot" />{{ t('weekFocus') }}</p>
       <h2>{{ t('welcome') }}</h2>
       <p>{{ t('welcomeSub') }}</p>
-      <div class="hero-actions">
-        <button class="button accent" @click="start(store.data.plans[0] || templates[0])">
-          <Play :size="16" fill="currentColor" />{{ t('start') }}</button
-        ><RouterLink to="/exercises" class="hero-link">{{ t('explore') }}</RouterLink>
-      </div>
+      <RouterLink to="/exercises" class="hero-link">{{ t('explore') }}</RouterLink>
     </div>
     <div class="hero-art" aria-hidden="true">
       <div class="hero-ring ring1" />
       <div class="hero-ring ring2" />
       <svg viewBox="0 0 330 280">
         <g transform="rotate(-32 165 140)">
-          <rect x="80" y="124" width="170" height="25" rx="8" fill="#b2c7e6" />
-          <rect x="75" y="79" width="35" height="115" rx="10" fill="#facc15" />
-          <rect x="51" y="96" width="26" height="81" rx="8" fill="#e5b814" />
-          <rect x="220" y="79" width="35" height="115" rx="10" fill="#facc15" />
-          <rect x="255" y="96" width="26" height="81" rx="8" fill="#e5b814" />
-          <path d="M86 90V180M231 90V180" stroke="#fff" opacity=".3" stroke-width="4" />
+          <rect x="80" y="124" width="170" height="25" rx="8" fill="var(--palette-ash)" />
+          <rect x="75" y="79" width="35" height="115" rx="10" fill="var(--color-accent)" />
+          <rect x="51" y="96" width="26" height="81" rx="8" fill="var(--color-accent-hover)" />
+          <rect x="220" y="79" width="35" height="115" rx="10" fill="var(--color-accent)" />
+          <rect x="255" y="96" width="26" height="81" rx="8" fill="var(--color-accent-hover)" />
+          <path d="M86 90V180M231 90V180" stroke="var(--color-surface)" opacity=".3" stroke-width="4" />
         </g></svg
       ><span class="art-caption">{{ t('artCaption') }}</span>
     </div>
   </section>
-  <div class="section-heading overview-title">
-    <h2>{{ t('yourDay') }}</h2>
-    <span class="muted small">{{ t('provisional') }}</span>
-  </div>
-  <div class="metric-grid">
-    <article
-      v-for="(m, i) in [
-        ['intake', stats.consumed, Utensils],
-        ['resting', stats.resting, Flame],
-        ['net', stats.net, Activity],
-        ['balance', stats.balance, CalendarDays],
-      ]"
-      :key="m[0]"
-      class="metric-card"
-    >
-      <div class="metric-label">
-        <span>{{ t(m[0]) }}</span><component :is="m[2]" :size="18" />
-      </div>
-      <div class="metric-number" :class="{ missing: m[1] === null }">
-        {{ m[1] === null ? '—' : n(m[1], { maximumFractionDigits: 0 })
-        }}<small v-if="m[1] !== null">kcal</small>
-      </div>
-      <p>
-        {{
-          m[1] === null
-            ? t('insufficient')
-            : i === 0
-              ? t(store.data.days[today]?.foodComplete ? 'confirmed' : 'unconfirmed')
-              : t('provisional')
-        }}
-      </p>
-    </article>
-  </div>
   <div class="dashboard-columns">
-    <div>
-      <div class="section-heading">
-        <h2>{{ t('training') }}</h2>
-        <RouterLink to="/plans">{{ t('viewAll') }}</RouterLink>
+    <section class="dashboard-statistics">
+      <div class="section-heading overview-title">
+        <h2>{{ t('yourDay') }}</h2>
+        <span class="muted small">{{ t('provisional') }}</span>
       </div>
-      <div class="plan-grid dashboard-plans">
-        <PlanCard
-          v-for="p in store.data.plans.length
-            ? store.data.plans.slice(0, 2)
-            : templates.slice(0, 2)"
-          :key="p.id"
-          :plan="p"
-          :is-template="!store.data.plans.length"
-          @start="start(p)"
-          @edit="router.push('/plans?edit=' + p.id)"
-          @use="useTemplate(p)"
-        />
+      <div class="metric-grid dashboard-metrics">
+        <article
+          v-for="(m, i) in [
+            ['intake', stats.consumed, Utensils],
+            ['resting', stats.resting, Flame],
+            ['net', stats.net, Activity],
+            ['balance', stats.balance, CalendarDays],
+          ]"
+          :key="m[0]"
+          class="metric-card"
+        >
+          <div class="metric-label">
+            <span>{{ t(m[0]) }}</span><component :is="m[2]" :size="18" />
+          </div>
+          <div class="metric-number" :class="{ missing: m[1] === null }">
+            {{ m[1] === null ? '—' : n(m[1], { maximumFractionDigits: 0 })
+            }}<small v-if="m[1] !== null">kcal</small>
+          </div>
+          <p>
+            {{
+              m[1] === null
+                ? t('insufficient')
+                : i === 0
+                  ? t(store.data.days[today]?.foodComplete ? 'confirmed' : 'unconfirmed')
+                  : t('provisional')
+            }}
+          </p>
+        </article>
       </div>
-      <div class="quick-panel">
-        <div>
-          <p class="eyebrow">{{ t('quick') }}</p>
-          <h3>{{ t('weekFocusSub') }}</h3>
-        </div>
-        <div class="quick-buttons">
-          <RouterLink to="/nutrition"
-            ><Utensils :size="18" />{{ t('logMeal') }}<Plus :size="16" /></RouterLink
-          ><RouterLink to="/body"
-            ><Activity :size="18" />{{ t('addMeasurement') }}<Plus :size="16"
-          /></RouterLink>
-        </div>
-      </div>
-    </div>
+    </section>
     <div class="panel">
       <TrainingRadar :data="radar" actual />
       <div class="radar-footnote">
@@ -162,7 +130,6 @@ function useTemplate(plan) {
         <h3>{{ t('emptyHistory') }}</h3>
         <p>{{ t('emptyHint') }}</p>
       </div>
-      <RouterLink to="/plans" class="button soft">{{ t('start') }}</RouterLink>
     </div>
     <RouterLink
       v-for="s in store.data.sessions.slice(-3).reverse()"
@@ -174,3 +141,40 @@ function useTemplate(plan) {
     >
   </section>
 </template>
+
+
+<style scoped>
+.dashboard-heading {
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.dashboard-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.dashboard-actions svg {
+  flex: none;
+}
+.dashboard-columns {
+  margin-top: 24px;
+}
+.dashboard-metrics {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-bottom: 0;
+}
+.overview-title {
+  margin-top: 0;
+}
+@media (max-width: 600px) {
+  .dashboard-actions {
+    display: grid;
+    width: 100%;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .dashboard-actions .button {
+    font-size: 13px;
+    padding-inline: 8px;
+  }
+}
+</style>

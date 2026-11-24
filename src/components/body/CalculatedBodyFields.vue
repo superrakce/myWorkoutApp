@@ -49,6 +49,6 @@ const values = computed(() => [
   </fieldset>
 </template>
 <style scoped>
-.calculated-fields { border: 1px solid #dce4ef; border-radius: 12px; padding: 1rem; margin: 1rem 0; min-width: 0; }
-.calculated-fields input[readonly] { background: #eef2f7; color: #34445c; cursor: default; }
+.calculated-fields { border: 1px solid var(--color-border); border-radius: 12px; padding: 1rem; margin: 1rem 0; min-width: 0; }
+.calculated-fields input[readonly] { background: var(--color-primary-soft); color: var(--color-text); cursor: default; }
 </style>

@@ -47,7 +47,7 @@ const shape = computed(() =>
         :key="r"
         :points="polygon(r)"
         fill="none"
-        stroke="#dbe4ee"
+        stroke="var(--color-divider)"
       />
       <line
         v-for="(_, i) in axes"
@@ -56,12 +56,12 @@ const shape = computed(() =>
         y1="145"
         :x2="point(i, 96)[0]"
         :y2="point(i, 96)[1]"
-        stroke="#dbe4ee"
+        stroke="var(--color-divider)"
       />
       <polygon
         :points="shape"
-        :fill="actual ? '#facc1538' : '#1d4ed826'"
-        :stroke="actual ? '#a16207' : '#1d4ed8'"
+        :fill="actual ? 'var(--color-accent-fill)' : 'var(--color-primary-fill)'"
+        :stroke="actual ? 'var(--color-accent-line)' : 'var(--color-primary)'"
         stroke-width="2.5"
       />
       <text
@@ -70,7 +70,7 @@ const shape = computed(() =>
         :x="point(i, 125)[0]"
         :y="point(i, 125)[1] + 4"
         text-anchor="middle"
-        fill="#475569"
+        fill="var(--color-text-muted)"
         font-size="12"
       >
         {{ t('labels.' + axis) }}

@@ -95,6 +95,9 @@ export function validatePlan(p, lookup = findExercise) {
     ['straight', 'circuit'].includes(p.mode) &&
     (p.tabata === undefined || typeof p.tabata === 'boolean') &&
     (!p.tabata || (p.mode === 'circuit' && p.setRest === p.transitionRest && p.setRest === p.roundRest)) &&
+    (p.plannedMet == null || (Number.isFinite(p.plannedMet) && p.plannedMet > 0 && p.plannedMet <= 25)) &&
+    (p.plannedActiveMinutes == null ||
+      (Number.isFinite(p.plannedActiveMinutes) && p.plannedActiveMinutes > 0 && p.plannedActiveMinutes <= 1440)) &&
     ['prepare', 'setRest', 'transitionRest', 'roundRest', 'cooldown'].every(
       (k) => Number.isFinite(p[k]) && p[k] >= 0,
     ) &&
@@ -184,6 +187,14 @@ export function energy(met, weight, minutes, resting) {
     gross,
     net: resting === null ? null : Math.max(0, gross - (resting / 1440) * minutes),
   }
+}
+export function plannedWorkoutEnergy(plan, weight) {
+  if (!plan.items.length) return null
+  const effort = timeline(plan).filter((stage) => stage.phase === 'working')
+  const minutes = effort.some((stage) => stage.seconds === null)
+    ? plan.plannedActiveMinutes
+    : effort.reduce((total, stage) => total + stage.seconds, 0) / 60
+  return energy(plan.plannedMet, weight, minutes, null).gross
 }
 export const intake = (kcal, amount, mode = 'grams', serving = 100) =>
   mode === 'total'
