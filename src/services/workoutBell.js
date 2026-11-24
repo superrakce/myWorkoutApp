@@ -30,13 +30,56 @@ let context
 let unlocking
 let output
 let cueId = 0
+let musicLevel
+let musicDuck
+let duckUntil = 0
+
+function audioContext() {
+  const AudioContext = globalThis.AudioContext || globalThis.webkitAudioContext
+  if (AudioContext) context ??= new AudioContext()
+  return context
+}
+
+export function connectWorkoutMusic(element) {
+  try {
+    const audio = audioContext()
+    if (!audio) return
+    if (!musicLevel) {
+      musicLevel = audio.createGain()
+      musicDuck = audio.createGain()
+      musicLevel.connect(musicDuck)
+      musicDuck.connect(audio.destination)
+      scheduleMusicDuck(duckUntil)
+    }
+    const source = audio.createMediaElementSource(element)
+    source.connect(musicLevel)
+    return () => source.disconnect()
+  } catch {}
+}
+
+export function setWorkoutMusicVolume(volume) {
+  if (musicLevel) musicLevel.gain.value = volume
+}
+
+function scheduleMusicDuck(until) {
+  duckUntil = until
+  if (!musicDuck) return
+  const gain = musicDuck.gain
+  const now = context.currentTime
+  const level = gain.value
+  gain.cancelScheduledValues(now)
+  gain.setValueAtTime(level, now)
+  const duckedAt = now + 0.01
+  if (until > duckedAt) {
+    gain.linearRampToValueAtTime(0.25, duckedAt)
+    gain.setValueAtTime(0.25, until)
+  }
+  gain.linearRampToValueAtTime(1, Math.max(until, now) + 0.18)
+}
 
 export function unlockWorkoutBell() {
-  const AudioContext = globalThis.AudioContext || globalThis.webkitAudioContext
-  if (!AudioContext) return
   try {
-    context ??= new AudioContext()
-    if (context.state !== 'running') {
+    if (audioContext() && context.state !== 'running') {
       const attempt = context.resume()
       unlocking = attempt
       const clearUnlock = () => {
@@ -47,10 +90,15 @@ export function unlockWorkoutBell() {
   } catch {}
 }
 
-export function stopWorkoutBell() {
+function clearBell() {
   cueId++
   output?.disconnect()
   output = undefined
+}
+
+export function stopWorkoutBell() {
+  clearBell()
+  scheduleMusicDuck(0)
 }
 
 export async function playWorkoutBell(phase, volume, countdownSecond) {
@@ -66,7 +114,7 @@ export async function playWorkoutBell(phase, volume, countdownSecond) {
   if (strikes[phase]) pattern.push(...countdownTone(phase + 'Ending', countdownSecond, 0.45))
   if (!pattern.length) return
 
-  stopWorkoutBell()
+  clearBell()
   const id = cueId
   try {
     if (context.state !== 'running') await unlocking
@@ -102,8 +150,9 @@ export async function playWorkoutBell(phase, volume, countdownSecond) {
       }
     }
 
+    scheduleMusicDuck(lastEnd)
     lastOscillator.onended = () => {
-      if (output === bell) stopWorkoutBell()
+      if (output === bell) clearBell()
     }
   } catch {
     if (id === cueId) stopWorkoutBell()
