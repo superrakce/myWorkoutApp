@@ -235,6 +235,9 @@ export function dailyStats(data, date) {
         ? 0
         : null
   const consumed = meals.reduce((a, m) => a + m.kcal, 0)
+  const totalNutrient = (key) => meals.some((meal) => meal[key] == null)
+    ? null
+    : meals.reduce((total, meal) => total + meal[key], 0)
   const complete = Boolean(
     status.foodComplete && status.exerciseComplete && resting !== null && net !== null,
   )
@@ -244,9 +247,8 @@ export function dailyStats(data, date) {
     net,
     complete,
     balance: complete ? consumed - resting - net : null,
-    protein: meals.some((m) => m.protein == null)
-      ? null
-      : meals.reduce((a, m) => a + (m.protein || 0), 0),
+    protein: totalNutrient('protein'),
+    carbs: totalNutrient('carbs'),
     measurement: m,
   }
 }

@@ -53,7 +53,7 @@ function copy(meal) {
     </button>
   </div>
   <label class="date-input">{{ t('date') }}<input type="date" v-model="date" required /></label>
-  <div class="metric-grid three">
+  <div class="metric-grid nutrition-metrics">
     <article class="metric-card">
       <span class="muted">{{ t('intake') }}</span>
       <div class="metric-number">
@@ -64,6 +64,13 @@ function copy(meal) {
       <span class="muted">{{ t('protein') }}</span>
       <div class="metric-number">
         {{ stats.protein === null ? '—' : n(stats.protein, { maximumFractionDigits: 1 })
+        }}<small>g</small>
+      </div>
+    </article>
+    <article class="metric-card">
+      <span class="muted">{{ t('carbs') }}</span>
+      <div class="metric-number">
+        {{ stats.carbs === null ? '—' : n(stats.carbs, { maximumFractionDigits: 1 })
         }}<small>g</small>
       </div>
     </article>

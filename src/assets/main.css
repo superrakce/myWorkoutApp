@@ -1085,7 +1085,7 @@ main {
 }
 .meal-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 20px;
 }
 .meal-panel > p {
@@ -1100,6 +1100,8 @@ main {
 }
 .meal-row > div {
   flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 .meal-row b {
   font-size: 14px;
@@ -1290,6 +1292,9 @@ th {
   }
 }
 @media (max-width: 1000px) {
+  .meal-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
   .sidebar {
     width: 180px;
   }

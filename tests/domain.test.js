@@ -246,3 +246,13 @@ describe('resting estimate diagnostics', () => {
     expect(restingEstimate({ ...m, rmr: 1500 }, p, '2026-11-23').value).toBe(1648.75)
   })
 })
+
+
+it('reports daily carbohydrates separately and preserves missing nutrient values', () => {
+  const date = '2026-11-24'
+  const meals = [{ date, kcal: 100, protein: 4, carbs: 13 }, { date, kcal: 80, protein: null, carbs: 7 }]
+  const data = { settings: { timeZone: 'Asia/Taipei' }, profile: {}, measurements: [], sessions: [], meals, days: {} }
+  expect(dailyStats(data, date)).toMatchObject({ carbs: 20, protein: null })
+  expect(dailyStats({ ...data, meals: [...meals, { date, kcal: 90 }] }, date).carbs).toBeNull()
+  expect(dailyStats(data, '2026-11-25').carbs).toBe(0)
+})
