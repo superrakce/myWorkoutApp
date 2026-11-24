@@ -198,7 +198,6 @@ const pairs = {
     '無法播放音訊，請更換檔案或重試。',
   ],
   retry: ['Retry', '重試'],
-  restored: ['A saved workout is paused. Resume when ready.', '已恢復上次訓練，準備好後請繼續。'],
   busy: [
     'Another tab is controlling this workout. Close it and retry.',
     '另一個分頁正在控制訓練，請關閉該分頁後重試。',
