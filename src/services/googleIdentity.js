@@ -51,19 +51,24 @@ export function createGoogleIdentity({clientId=GOOGLE_CLIENT_ID,getGoogle=()=>gl
       client.requestAccessToken({prompt:drive?'consent':'select_account'})
     })
   }
-  async function restore(expectedSub) {
+  async function restore(expectedSub,signal) {
     const saved=session.readAuthorization(now())
     if(!saved)return null
     if(saved.clientId!==clientId){session.clearAuthorization();return null}
     if(saved.sub!==expectedSub){session.clearAuthorization();throw Error('syncAccountMismatch')}
     const current=++generation
+    const timeout=AbortSignal.timeout(15000)
+    const requestSignal=signal?AbortSignal.any([signal,timeout]):timeout
     try {
       const response=await fetcher('https://openidconnect.googleapis.com/v1/userinfo',{
-        headers:{Authorization:'Bearer '+saved.token},signal:AbortSignal.timeout(15000),
+        headers:{Authorization:'Bearer '+saved.token},signal:requestSignal,
       })
+      requestSignal.throwIfAborted()
       if(current!==generation)throw Error('syncAccountChanged')
+      if(response.status===429||response.status>=500)throw Error('syncTemporary')
       if(!response.ok)throw Error('syncNeedsAuth')
       const person=await response.json()
+      requestSignal.throwIfAborted()
       if(current!==generation)throw Error('syncAccountChanged')
       if(person.sub!==expectedSub)throw Error('syncAccountMismatch')
       if(saved.expiresAt-now()<30000)throw Error('syncNeedsAuth')

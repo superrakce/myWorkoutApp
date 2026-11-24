@@ -9,11 +9,15 @@ export const useSyncStore=defineStore('sync',()=>{
   const app=useAppStore(),status=ref('syncLocal'),error=ref(''),busy=ref(false),authBusy=ref(false),
     googleReady=ref(false),online=ref(navigator.onLine),guestPreview=ref(null)
   const configured=googleIdentity.configured(),issues=computed(()=>conflicts(app.sync.events))
-  let installed=false,restoring=false,timer,controller,generation=0,retries=0,recovering=false
-  function cancel(){generation++;clearTimeout(timer);controller?.abort();busy.value=false}
+  let installed=false,needsSessionRestore=true,restoreController,timer,controller,generation=0,retries=0,recovering=false
+  function cancel(){
+    generation++;clearTimeout(timer);retries=0
+    restoreController?.abort();restoreController=null
+    controller?.abort();busy.value=false
+  }
   async function prepare(){
     if(!configured)return
-    try{await loadGoogleIdentity();googleReady.value=true;error.value=''}catch(e){error.value=e.message}
+    try{await loadGoogleIdentity();googleReady.value=true;if(error.value==='syncGoogleUnavailable')error.value=''}catch(e){error.value=e.message}
   }
   function setError(e){
     const key=e.message
@@ -27,11 +31,13 @@ export const useSyncStore=defineStore('sync',()=>{
     try{
       const identity=await googleIdentity.authorize()
       await app.openAccount(identity)
+      needsSessionRestore=false;guestPreview.value=null
       status.value=app.sync.reviewRequired?'syncRestoreReview':app.sync.enabled?'syncNeedsAuth':'syncLocal'
     }catch(e){setError(e)}finally{authBusy.value=false}
   }
   async function signOut(){
-    cancel();googleIdentity.clear();authBusy.value=true
+    if(authBusy.value)return
+    authBusy.value=true;cancel();googleIdentity.clear();needsSessionRestore=false
     try{await app.signOut();status.value='syncLocal';error.value='';guestPreview.value=null}
     catch(e){setError(e)}finally{authBusy.value=false}
   }
@@ -40,6 +46,7 @@ export const useSyncStore=defineStore('sync',()=>{
     authBusy.value=true;cancel();error.value=''
     try{
       await googleIdentity.authorize(true,app.identity.sub)
+      needsSessionRestore=false
       app.sync.enabled=true;await app.persist()
       status.value=app.sync.reviewRequired?'syncRestoreReview':'syncPending'
     }catch(e){setError(e)}finally{authBusy.value=false}
@@ -52,71 +59,89 @@ export const useSyncStore=defineStore('sync',()=>{
     googleIdentity.clear();status.value='syncLocal';error.value=''
   }
   async function restoreSession(){
-    if(!app.identity||restoring||authBusy.value)return
-    if(!online.value){status.value='syncOffline';return}
-    const expected=app.scope,current=generation
-    restoring=true;authBusy.value=true;status.value='syncRestoringSession';error.value=''
-    let restored=false
+    if(!app.identity||restoreController||authBusy.value)return false
+    if(!online.value){status.value='syncOffline';return false}
+    const request=new AbortController()
+    restoreController=request;status.value='syncRestoringSession';error.value=''
     try{
-      const person=await googleIdentity.restore(app.identity.sub)
-      if(expected!==app.scope||current!==generation)return
-      if(person){app.updateIdentity(person);restored=true}
+      const person=await googleIdentity.restore(app.identity.sub,request.signal)
+      if(restoreController!==request)return false
+      needsSessionRestore=false
+      if(person)app.updateIdentity(person)
       status.value=app.sync.reviewRequired?'syncRestoreReview':app.sync.enabled?'syncNeedsAuth':'syncAccountRemembered'
+      return Boolean(person)
     }catch(e){
-      if(expected===app.scope&&current===generation){
-        error.value=e.message.startsWith('sync')?e.message:'syncNetwork'
-        status.value='syncNeedsAuth'
+      if(restoreController===request){
+        needsSessionRestore=!['syncNeedsAuth','syncAccountMismatch'].includes(e.message)
+        setError(e.message.startsWith('sync')?e:Error('syncNetwork'))
       }
-    }finally{restoring=false;authBusy.value=false}
-    if(restored&&expected===app.scope&&current===generation&&app.sync.enabled&&!app.sync.reviewRequired)await run()
+      return false
+    }finally{
+      if(restoreController===request)restoreController=null
+    }
+  }
+  function resumeSession(){
+    if(!app.identity||authBusy.value)return
+    if(app.sync.enabled&&!app.sync.reviewRequired)run()
+    else if(needsSessionRestore)restoreSession()
   }
   function schedule(delay=1800){
     clearTimeout(timer)
-    if(restoring||authBusy.value||!app.identity||!app.sync.enabled||app.sync.reviewRequired)return
+    if(restoreController||authBusy.value||!app.identity||!app.sync.enabled||app.sync.reviewRequired)return
     if(!online.value){status.value='syncOffline';return}
     if(busy.value)return
     status.value=issues.value.length?'syncConflict':'syncPending'
     timer=setTimeout(()=>run(),delay)
   }
   async function run({approveRestore=false,recover=false}={}){
-    if(restoring||busy.value||!app.identity)return
+    if(restoreController||authBusy.value||busy.value||!app.identity)return
     if(app.sync.reviewRequired&&!approveRestore){status.value='syncRestoreReview';return}
     if(!app.sync.enabled&&!approveRestore)return
     if(!online.value){status.value='syncOffline';return}
-    const expected=app.scope,person=app.identity.sub,runGeneration=++generation
+    const expected=app.scope,previousGeneration=generation
+    if(needsSessionRestore&&!await restoreSession())return
+    if(previousGeneration!==generation||expected!==app.scope||authBusy.value||busy.value)return
+    const person=app.identity.sub,runGeneration=++generation
+    const isCurrent=()=>runGeneration===generation&&expected===app.scope
     busy.value=true;error.value='';status.value='syncWorking';clearTimeout(timer)
-    controller=new AbortController()
+    const request=new AbortController()
+    controller=request
     try{
       googleIdentity.access(person)
       if(approveRestore){app.sync.reviewRequired=false;app.sync.enabled=true}
       await app.persist()
-      const drive=createDriveClient({getToken:()=>googleIdentity.access(person),signal:controller.signal})
-      const apply=(events,uploaded,files)=>app.applyRemote(expected,events,uploaded,files,()=>runGeneration===generation)
+      if(!isCurrent())return
+      const drive=createDriveClient({getToken:()=>googleIdentity.access(person),signal:request.signal})
+      const apply=(events,uploaded,files)=>app.applyRemote(expected,events,uploaded,files,isCurrent)
       const first=await drive.download(app.sync.files,recover)
-      if(runGeneration!==generation||expected!==app.scope)return
+      if(!isCurrent())return
       await apply(first.events,[],first.files)
+      if(!isCurrent())return
       if(recover){
         app.sync.pending=[...new Set([...app.sync.pending,...app.sync.events.map(e=>e.id)])]
         await app.persist()
       }
       const queued=[...app.sync.pending],uploadedFiles={}
       for(const id of queued){
-        if(runGeneration!==generation||expected!==app.scope)return
+        if(!isCurrent())return
         const event=app.sync.events.find(e=>e.id===id)
         if(!event)throw Error('syncCorrupt')
         const file=await drive.upload(event)
         uploadedFiles[file.id]=file.stamp
-        if(runGeneration!==generation||expected!==app.scope)return
+        if(!isCurrent())return
         await apply([],[id],{...app.sync.files,[file.id]:file.stamp})
       }
+      if(!isCurrent())return
       const last=await drive.download(first.files)
-      if(runGeneration!==generation||expected!==app.scope)return
+      if(!isCurrent())return
       await apply(last.events,[],{...last.files,...uploadedFiles})
+      if(!isCurrent())return
       status.value=issues.value.length?'syncConflict':app.sync.pending.length?'syncPending':'syncSynced'
       if(status.value==='syncSynced'){app.sync.lastSync=new Date().toISOString();await app.persist()}
-      retries=0
+      if(isCurrent())retries=0
     }catch(e){
       if(e.name==='AbortError'||runGeneration!==generation)return
+      if(e.status===401)googleIdentity.clear()
       setError(e)
       if(['syncNetwork','syncTemporary','syncQuota'].includes(e.message)&&retries<5){
         const delay=[2000,5000,15000,30000,60000][retries++]
@@ -143,22 +168,23 @@ export const useSyncStore=defineStore('sync',()=>{
   }
   async function pauseForRestore(){cancel();app.sync.enabled=false;await app.persist()}
   async function deleteCloud(){
-    if(!app.identity)return
-    cancel();app.sync.enabled=false;await app.persist();busy.value=true;error.value=''
+    if(!app.identity||authBusy.value||restoreController||busy.value)return
+    authBusy.value=true;cancel();error.value=''
     try{
+      app.sync.enabled=false;await app.persist()
       const drive=createDriveClient({getToken:()=>googleIdentity.access(app.identity.sub)})
       await drive.deleteCloud()
       app.sync.files={};app.sync.lastSync=null;app.sync.reviewRequired=true
       app.sync.pending=app.sync.events.map(e=>e.id)
       await app.persist();status.value='syncCloudDeleted'
-    }catch(e){setError(e)}finally{busy.value=false}
+    }catch(e){setError(e)}finally{authBusy.value=false}
   }
   function init(){
     if(installed)return
     installed=true
     app.onSaved(()=>schedule())
-    restoreSession()
-    window.addEventListener('online',()=>{online.value=true;restoreSession()})
+    resumeSession()
+    window.addEventListener('online',()=>{online.value=true;resumeSession()})
     window.addEventListener('offline',()=>{online.value=false;cancel();status.value=app.identity?'syncOffline':'syncLocal'})
     window.addEventListener('focus',()=>{if(app.sync.enabled)schedule(0)})
     document.addEventListener('visibilitychange',()=>{if(!document.hidden&&app.sync.enabled)schedule(0)})

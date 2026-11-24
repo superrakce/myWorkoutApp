@@ -1,37 +1,59 @@
 # myWorkoutApp · FORM
 
-Vue 3 健身管理 App：英文／繁體中文、手機優先，包含動作篩選、課表播放、訓練紀錄、六軸雷達圖、飲食及身體數據統計。
+myWorkoutApp 是手機優先的健身管理 App，支援繁體中文與英文。你可以排課表、跟著計時器訓練，並在同一個地方記錄飲食和身體量測。開啟網站後可直接使用本機模式，也可登入 Google 並另外啟用 Drive 同步。
 
-- [GitHub Pages](https://superrakce.github.io/myWorkoutApp/)
-- [測試與部署狀態](https://github.com/superrakce/myWorkoutApp/actions)
-- [開發說明與第一版限制](document/development.md)
-- [需求規格](document/rfq.txt)
-- [Google 登入與個人 Drive 設定](document/google-drive-setup.md)
-- [CI、部署與雲端接續說明](document/ci-deployment.md)
+[開啟正式網站](https://superrakce.github.io/myWorkoutApp/) · [測試與部署紀錄](https://github.com/superrakce/myWorkoutApp/actions)
 
-## Google 帳號與個人 Drive
+## 已開發功能
 
-保留本機模式；啟用 Google 設定後，每位使用者可登入並另行授權 Drive 同步。課表、訓練、飲食、身體量測與設定保存在本人 Google Drive appDataFolder，不建立集中式會員資料庫。登入授權只暫存在記憶體與同一分頁的 sessionStorage；重新整理先驗證 Google 帳號後恢復同步，過期則保留本機工作區並提示重新連線。
+| 功能 | 可以做什麼 |
+| --- | --- |
+| 動作庫 | 按部位、器材、類型或難度篩選及收藏動作，新增自訂動作，也能編輯或刪除內建動作。既有課表與訓練紀錄保留當時的動作快照。 |
+| 課表與播放器 | 建立、編排、複製與收藏課表，設定組數、次數、秒數、負重和休息。支援逐動作、循環與 Tabata，可暫停、繼續或跳過。 |
+| 訓練紀錄與六軸雷達 | 記錄實際完成的組數、次數、秒數和負重，支援補登及編輯。可用日期區間與六軸雷達圖查看各部位的訓練分布。 |
+| 飲食與熱量 | 依日期與餐別記錄餐點，支援搜尋示例食物、手動輸入、依重量或份量換算、直接填本次總熱量，以及選填營養素。 |
+| 身體量測 | 記錄量測時間、當日年齡、身高、體重等資料，查看體重趨勢。表單會即時計算 BMI、除脂體重和估計靜息代謝。 |
+| 資料管理 | 支援本機模式、Google 帳號切換、個人 Drive 同步、完整 JSON 備份與還原，以及 CSV 紀錄匯出。 |
 
-部署管理者需先完成 Google Cloud／OAuth 設定，並在 GitHub Actions 的 Repository Variables 設定公開的 `VITE_GOOGLE_CLIENT_ID`。未設定時會明確顯示登入尚未啟用，本機功能可繼續使用。不要提供 Client Secret、service account 或使用者權杖。
+**拍照辨識熱量尚未在正式站開放。** 開發版本已實作拍照或選圖、預覽、AI 估算及儲存前編輯，並完成模擬流程測試。確認後的餐點資料會和其他飲食紀錄一樣保存，原始照片只用於當次分析。以使用者自己的 ChatGPT 方案額度辨識照片的申請已由 OpenAI 收件，仍待審核與真實授權驗收。
 
-同步保留本機佇列、逐筆版本、刪除標記及衝突選擇。登出／清除此裝置與永久刪除 Drive 副本是不同操作。詳細流程、限制及人工 Google 授權驗收見設定文件。
+## 資料儲存與同步
 
-## 執行與驗證
+### 此瀏覽器的 IndexedDB
 
-使用 Node.js 22：
+課表、訓練、飲食、身體量測、自訂動作及設定會先寫入目前瀏覽器的 **IndexedDB**。訪客與每個 Google 帳號各有獨立工作區。切換帳號會載入該帳號的資料，訪客資料只有在你預覽並確認匯入後才會複製到登入帳號。
+
+本機資料依網站來源與瀏覽器使用者設定檔保存。換網址、瀏覽器或裝置時，可用 JSON 備份搬移，或用同一 Google 帳號啟用 Drive 同步。清除瀏覽器網站資料會移除 IndexedDB 裡的紀錄，清除前請確認備份或同步狀態。網頁載入後可離線記錄，恢復連線後再同步。
+
+### 你自己的 Google Drive
+
+在「設定」登入 Google 後，再選擇啟用 Drive 同步。已授權的 App 只使用該帳號 Drive 的專用應用程式資料區 **`appDataFolder`**。這個區域通常不出現在 Drive 的一般檔案清單。GitHub Pages 託管網站程式，個人紀錄保存在瀏覽器與本人 Drive，專案沒有集中式會員資料庫。
+
+同步涵蓋自訂動作與內建動作的覆寫或刪除、課表與收藏、已儲存的訓練及飲食紀錄、每日確認狀態、身體資料與可攜設定。進行中的播放器狀態和本機音樂檔留在原裝置。離線修改先保存在本機佇列，重新連線後可繼續同步。同一筆資料在不同裝置上發生衝突時，App 會保留兩個版本供你選擇。
+
+帳號選擇與短期授權只暫存在記憶體和同一分頁的 `sessionStorage`。重新整理會先開啟原工作區，再向 Google 確認帳號後恢復同步。授權過期或被撤銷時，本機紀錄仍可用，Drive 同步需重新連線。主動登出會清除該分頁的帳號選擇與授權。
+
+### 匯出、還原與刪除
+
+- **完整 JSON 備份**包含目前工作區的業務資料，可預覽並還原至工作區。**CSV** 適合在試算表查看訓練與飲食紀錄。
+- 備份與 Drive 同步資料不含 OAuth 權杖。已確認的餐點紀錄可隨備份與同步搬移。
+- **登出**切回本機訪客工作區。**清除此裝置資料**清除目前工作區的本機內容。**永久刪除 Drive 副本**是設定頁的獨立操作，需要有效授權和確認。
+
+## 開發與驗證
+
+使用 Node.js 22。
 
 ```sh
 npm ci
 npm run dev
 npm test
-npm run test:e2e
 npm run build
 ```
 
-本機測試預設使用 Edge；GitHub CI 使用 Chromium。每次 push／PR 執行測試與建置，只有 main 全部通過後才部署 Pages。Google 模擬測試使用測試 Client ID，不接觸個人 Google 帳號或真實健康資料；正式授權需以已設定的 Google 專案驗收。
+瀏覽器測試用 `npm run test:e2e`，本機預設使用 Edge，GitHub CI 使用 Chromium。需要執行 Google 的模擬案例時，請沿用 CI 的測試環境變數。正式 Google 登入使用 Repository Variable `VITE_GOOGLE_CLIENT_ID`，值為公開 OAuth Client ID。PR 會執行測試與建置，只有通過驗證的 `main` 建置會部署至 GitHub Pages。
 
-開發文件集中於 document/。套件、dist、測試輸出及登入憑證不提交至 Git。原創占位圖、示例食品資料及其他第一版界線仍如開發文件所述。
-
-網站網址與瀏覽器帳號資料區彼此獨立；本機網址的舊資料可用 JSON 備份搬移。Drive 同步需要網路與有效授權，不等於 PWA 離線安裝。
-
+- [需求規格](document/rfq.txt)
+- [開發說明與示例素材限制](document/development.md)
+- [Google 登入、個人 Drive 與同步協定](document/google-drive-setup.md)
+- [重新整理與 Google 工作階段](document/google-session.md)
+- [CI 與 Pages 部署](document/ci-deployment.md)
