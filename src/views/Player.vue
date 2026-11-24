@@ -7,7 +7,13 @@ import { useAppStore } from '../stores/app.js'
 import { templates } from '../data/catalog.js'
 import { clone } from '../services/domain.js'
 import { usePlayer } from '../composables/usePlayer.js'
-import { playWorkoutBell, stopWorkoutBell, unlockWorkoutBell } from '../services/workoutBell.js'
+import {
+  connectWorkoutMusic,
+  playWorkoutBell,
+  setWorkoutMusicVolume,
+  stopWorkoutBell,
+  unlockWorkoutBell,
+} from '../services/workoutBell.js'
 import ExerciseArt from '../components/ExerciseArt.vue'
 import SessionSummary from '../components/SessionSummary.vue'
 const store = useAppStore(),
@@ -34,19 +40,29 @@ const exercise = computed(() =>
 const audio = ref(null),
   audioError = ref(false),
   summaryPending = ref(false)
-let objectUrl
+let objectUrl, disconnectMusic
+function updateMusicVolume(volume) {
+  if (disconnectMusic) setWorkoutMusicVolume(volume)
+  else if (audio.value) audio.value.volume = volume
+}
+function releaseMusic() {
+  audio.value?.pause()
+  disconnectMusic?.()
+  if (objectUrl) URL.revokeObjectURL(objectUrl)
+}
 function file(event) {
   if (!event.target.files?.length) return
-  audio.value?.pause()
-  if (objectUrl) URL.revokeObjectURL(objectUrl)
+  releaseMusic()
   objectUrl = URL.createObjectURL(event.target.files[0])
   audio.value = new Audio(objectUrl)
   audio.value.loop = true
-  audio.value.volume = store.data.settings.musicVolume
+  disconnectMusic = connectWorkoutMusic(audio.value)
+  updateMusicVolume(store.data.settings.musicVolume)
   audio.value.onerror = () => (audioError.value = true)
   if (!['ready', 'paused'].includes(session.value.status)) playAudio()
 }
 async function playAudio() {
+  unlockWorkoutBell()
   if (!audio.value) return
   try {
     await audio.value.play()
@@ -56,9 +72,8 @@ async function playAudio() {
   }
 }
 function start() {
-  unlockWorkoutBell()
-  resume()
   playAudio()
+  resume()
 }
 function ring(phase, countdownSecond) {
   playWorkoutBell(phase, store.data.settings.cueVolume, countdownSecond)
@@ -74,12 +89,7 @@ watch(
     if (['paused', 'aborted', 'ready'].includes(s)) stopWorkoutBell()
   },
 )
-watch(
-  () => store.data.settings.musicVolume,
-  (v) => {
-    if (audio.value) audio.value.volume = v
-  },
-)
+watch(() => store.data.settings.musicVolume, updateMusicVolume)
 watch(
   () => store.data.settings.cueVolume,
   (volume) => {
@@ -107,8 +117,7 @@ async function discardSession() {
   }
 }
 onUnmounted(() => {
-  audio.value?.pause()
-  if (objectUrl) URL.revokeObjectURL(objectUrl)
+  releaseMusic()
   stopWorkoutBell()
 })
 </script>
