@@ -86,7 +86,7 @@ export function validateBackup(b) {
         ...p,
         items: p.items.length
           ? p.items
-          : [{ exerciseId: 'pushup', mode: 'reps', target: 1, weight: 0 }],
+          : [{ exerciseId: 'pushup', mode: p.tabata ? 'time' : 'reps', target: 1, weight: 0 }],
       }, findExercise)
     )
       fail()
@@ -144,7 +144,9 @@ export function validateBackup(b) {
       if (
         !['working', 'resting', 'preparing', 'cooldown'].includes(st.phase) ||
         (st.seconds !== null && !num(st.seconds)) ||
-        (st.phase === 'working' && !findExercise(st.exerciseId))
+        (st.phase === 'working' && !(st.exercise
+          ? st.exercise.id === st.exerciseId && validateExercise(st.exercise)
+          : findExercise(st.exerciseId)))
       )
         fail()
   }

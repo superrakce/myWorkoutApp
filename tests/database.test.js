@@ -4,10 +4,16 @@ import { readData, writeData, validateBackup } from '../src/repositories/databas
 import { clone, distribution, timeline } from '../src/services/domain.js'
 import { templates, exercises } from '../src/data/catalog.js'
 it('round-trips related records, snapshots and player checkpoint atomically', async () => {
+  const exercise = { ...clone(exercises[0]), id: 'custom-interval' }
+  const tabata = {
+    ...clone(templates[2]),
+    name: 'My Tabata',
+    items: [{ exerciseId: exercise.id, exercise, mode: 'time', target: 20, weight: 0 }],
+  }
   const data = {
     profile: { age: 30 },
     settings: { timeZone: 'Asia/Taipei', musicVolume: 0.35, cueVolume: 0.25 },
-    plans: [{ ...clone(templates[0]), name: 'Test' }],
+    plans: [{ ...clone(templates[0]), name: 'Test' }, tabata],
     sessions: [
       {
         id: 's',
@@ -44,15 +50,15 @@ it('round-trips related records, snapshots and player checkpoint atomically', as
     days: {},
     active: {
       id: 'active',
-      snapshot: { name: 'Paused' },
+      snapshot: tabata,
       startedAt: '2026-11-20T12:00:00Z',
       logs: [],
       minutes: 0,
       met: 0,
-      stages: timeline(templates[0]),
+      stages: timeline(tabata),
       activeSeconds: 5,
       status: 'paused',
-      cursor: 2,
+      cursor: 1,
       elapsed: 7,
     },
   }
@@ -63,6 +69,7 @@ it('round-trips related records, snapshots and player checkpoint atomically', as
   expect(restored).toEqual(data)
   expect(distribution(restored.sessions[0].logs).total).toBe(1)
   expect(restored.active.elapsed).toBe(7)
+  expect(restored.active.stages[1].exercise.id).toBe('custom-interval')
 })
 it('rejects invalid version, duplicate IDs and broken set snapshots', () => {
   expect(() => validateBackup({ schemaVersion: 99, data: {} })).toThrow()

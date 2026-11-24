@@ -3,12 +3,16 @@ import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { clone, distribution } from '../services/domain.js'
 import TrainingRadar from './TrainingRadar.vue'
-const props = defineProps({ session: { type: Object, required: true } }),
-  emit = defineEmits(['save']),
+const props = defineProps({
+    session: { type: Object, required: true },
+    canDiscard: Boolean,
+    pending: Boolean,
+  }),
+  emit = defineEmits(['save', 'discard']),
   { t, locale } = useI18n(),
   draft = ref(clone(props.session))
 function save() {
-  emit('save', clone(draft.value))
+  if (!props.pending) emit('save', clone(draft.value))
 }
 </script>
 <template>
@@ -59,8 +63,13 @@ function save() {
         /></label>
       </div>
       <p class="small muted">{{ t('energyHint') }}</p>
-      <label>{{ t('notes') }}<textarea v-model="draft.notes" maxlength="2000" /></label
-      ><button class="button primary">{{ t('saveSession') }}</button>
+      <label>{{ t('notes') }}<textarea v-model="draft.notes" maxlength="2000" /></label>
+      <div class="form-actions">
+        <button v-if="canDiscard" type="button" class="button soft" :disabled="pending" @click="emit('discard')">
+          {{ t('discardSession') }}
+        </button>
+        <button class="button primary" :disabled="pending">{{ t('saveSession') }}</button>
+      </div>
     </section>
     <aside class="panel">
       <TrainingRadar :data="distribution(draft.logs)" actual />

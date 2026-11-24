@@ -1,7 +1,7 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useAppStore } from '../stores/app.js'
 import { clone, timeline, uid, validatePlan } from '../services/domain.js'
-export function usePlayer(plan) {
+export function usePlayer(plan, onAutoStart) {
   const store = useAppStore(),
     owned = ref(false),
     busy = ref(false),
@@ -10,7 +10,8 @@ export function usePlayer(plan) {
     release,
     lastManualAction = 0,
     anchor = Date.now(),
-    wake
+    wake,
+    disposed = false
   const session = computed(() => store.data.active),
     stage = computed(() => session.value?.stages[session.value.cursor]),
     remaining = computed(() =>
@@ -47,7 +48,9 @@ export function usePlayer(plan) {
         notes: '',
         source: 'player',
       }
+      return true
     }
+    return false
   }
   async function acquire() {
     if (!navigator.locks) {
@@ -55,13 +58,15 @@ export function usePlayer(plan) {
       return
     }
     navigator.locks.request('form-workout-player', { ifAvailable: true }, async (lock) => {
+      if (disposed) return
       if (!lock) {
         busy.value = true
         return
       }
+      const held = new Promise((resolve) => (release = resolve))
       owned.value = true
-      create()
-      await new Promise((r) => (release = r))
+      if (create() && plan.tabata && !document.hidden) onAutoStart()
+      await held
       owned.value = false
     })
   }
@@ -198,6 +203,20 @@ export function usePlayer(plan) {
     await store.persist()
     release?.()
   }
+  async function discard() {
+    if (!owned.value || !finished.value) return false
+    const discarded = session.value
+    const scope = store.scope
+    store.data.active = null
+    try {
+      await store.persist()
+    } catch {
+      if (store.scope === scope && !store.data.active) store.data.active = discarded
+      return false
+    }
+    release?.()
+    return store.scope === scope
+  }
   function visibility() {
     if (document.hidden) pause()
   }
@@ -211,6 +230,7 @@ export function usePlayer(plan) {
     window.addEventListener('pagehide', pagehide)
   })
   onUnmounted(() => {
+    disposed = true
     pause()
     clearInterval(interval)
     release?.()
@@ -230,5 +250,6 @@ export function usePlayer(plan) {
     advance,
     end,
     save,
+    discard,
   }
 }

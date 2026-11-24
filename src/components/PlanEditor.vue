@@ -14,6 +14,36 @@ const props = defineProps({ plan: { type: Object, required: true } }),
 const draft = ref(clone(props.plan)),
   invalid = ref(false),
   radar = computed(() => planDistribution(draft.value))
+const intervalRest = computed({
+  get: () => draft.value.setRest,
+  set: (value) => {
+    draft.value.setRest = value
+    draft.value.transitionRest = value
+    draft.value.roundRest = value
+  },
+})
+const playbackMode = computed({
+  get: () => draft.value.tabata ? 'tabata' : draft.value.mode,
+  set: (mode) => {
+    if (mode !== 'tabata') {
+      delete draft.value.tabata
+      draft.value.mode = mode
+      return
+    }
+    draft.value.tabata = true
+    draft.value.mode = 'circuit'
+    if (!draft.value.items.length) draft.value.sets = 8
+    intervalRest.value = 10
+    for (const item of draft.value.items) {
+      if (item.mode === 'time') continue
+      item.mode = 'time'
+      item.target = 20
+    }
+  },
+})
+const restFields = computed(() => draft.value.tabata
+  ? ['prepare', 'cooldown']
+  : ['prepare', 'setRest', 'transitionRest', 'roundRest', 'cooldown'])
 function move(i, d) {
   const j = i + d
   if (j < 0 || j >= draft.value.items.length) return
@@ -27,8 +57,8 @@ function save() {
   emit('save', draft.value)
 }
 function add() {
-  emit('save', draft.value)
-  router.push('/exercises?return=plan')
+  const id = store.savePlan(draft.value)
+  router.push({ path: '/exercises', query: { return: 'plan', plan: id } })
 }
 </script>
 <template>
@@ -37,18 +67,19 @@ function add() {
       <div class="form-grid">
         <label>{{ t('name') }}<input v-model.trim="draft.name" required maxlength="120" /></label
         ><label
-          >{{ t('sets')
+          >{{ t(draft.tabata ? 'tabataRounds' : 'sets')
           }}<input type="number" v-model.number="draft.sets" min="1" max="100" required /></label
         ><label class="full"
           >{{ t('description') }}<input v-model="draft.description" maxlength="500" /></label
         ><label
           >{{ t('mode')
-          }}<select v-model="draft.mode">
+          }}<select v-model="playbackMode">
             <option value="straight">{{ t('straight') }}</option>
             <option value="circuit">{{ t('circuit') }}</option>
+            <option value="tabata">{{ t('tabata') }}</option>
           </select></label
         ><label
-          v-for="k in ['prepare', 'setRest', 'transitionRest', 'roundRest', 'cooldown']"
+          v-for="k in restFields"
           :key="k"
           >{{ t(k) }} ({{ t('seconds') }})<input
             type="number"
@@ -57,6 +88,10 @@ function add() {
             v-model.number="draft[k]"
             required
         /></label>
+        <label v-if="draft.tabata">
+          {{ t('tabataRest') }} ({{ t('seconds') }})
+          <input type="number" min="0" max="3600" v-model.number="intervalRest" required />
+        </label>
       </div>
       <div class="section-heading">
         <h3>{{ t('exercises') }}</h3>
@@ -91,14 +126,14 @@ function add() {
           </div>
         </div>
         <div class="form-grid three">
-          <label
+          <label v-if="!draft.tabata"
             >{{ t('mode')
             }}<select v-model="i.mode">
               <option value="reps">{{ t('reps') }}</option>
               <option value="time">{{ t('seconds') }}</option>
             </select></label
           ><label
-            >{{ t('target')
+            >{{ t(draft.tabata ? 'tabataWork' : 'target')
             }}<input type="number" min="1" v-model.number="i.target" required /></label
           ><label
             >{{ t('weight')

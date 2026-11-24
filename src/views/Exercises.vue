@@ -23,6 +23,14 @@ const store = useAppStore(),
   adding = ref(null),
   planId = ref(''),
   message = ref('')
+watch(
+  () => route.query.plan,
+  (id) => {
+    if (typeof id === 'string' && store.data.plans.some((plan) => plan.id === id))
+      planId.value = id
+  },
+  { immediate: true },
+)
 const filters = reactive({
   query: '',
   part: route.query.part || '',
@@ -69,7 +77,9 @@ function add() {
     })
     plan = store.data.plans.find((p) => p.id === id)
   }
-  plan.items.push({ exerciseId: adding.value.id, mode: adding.value.mode, target: adding.value.mode === 'time' ? 30 : 12, weight: 0, exercise: clone(adding.value) })
+  const mode = plan.tabata ? 'time' : adding.value.mode
+  const target = plan.tabata ? 20 : mode === 'time' ? 30 : 12
+  plan.items.push({ exerciseId: adding.value.id, mode, target, weight: 0, exercise: clone(adding.value) })
   adding.value = null
   message.value = t('added')
   if (route.query.return) router.push('/plans?edit=' + plan.id)

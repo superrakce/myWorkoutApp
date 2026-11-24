@@ -93,13 +93,15 @@ export function validatePlan(p, lookup = findExercise) {
     Array.isArray(p.items) &&
     p.items.length &&
     ['straight', 'circuit'].includes(p.mode) &&
+    (p.tabata === undefined || typeof p.tabata === 'boolean') &&
+    (!p.tabata || (p.mode === 'circuit' && p.setRest === p.transitionRest && p.setRest === p.roundRest)) &&
     ['prepare', 'setRest', 'transitionRest', 'roundRest', 'cooldown'].every(
       (k) => Number.isFinite(p[k]) && p[k] >= 0,
     ) &&
     p.items.every(
       (i) =>
         (i.exercise ? i.exercise.id === i.exerciseId && validateExercise(i.exercise) : lookup(i.exerciseId)) &&
-        ['time', 'reps'].includes(i.mode) &&
+        (p.tabata ? i.mode === 'time' : ['time', 'reps'].includes(i.mode)) &&
         Number.isFinite(i.target) &&
         i.target > 0 &&
         Number.isFinite(i.weight) &&
