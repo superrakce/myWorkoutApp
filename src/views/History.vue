@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { Plus, Trash2 } from 'lucide-vue-next'
+import { Plus, Pencil, Trash2 } from 'lucide-vue-next'
 import { useAppStore } from '../stores/app.js'
 import {
   localDate,
@@ -144,7 +144,7 @@ function addManual() {
   </div>
   <template v-if="!selected"
     ><DateRangeFilter v-model:start="start" v-model:end="end" :today="today" />
-    <div class="metric-grid three">
+    <div class="metric-grid history-metrics">
       <article
         class="metric-card"
         v-for="m in [
@@ -157,20 +157,18 @@ function addManual() {
         <span class="muted">{{ t(m[0]) }}</span>
         <div class="metric-number">{{ m[1] }}</div>
       </article>
+      <article class="metric-card">
+        <span class="muted">{{ t('sessionMetrics') }}</span>
+        <div class="metric-number">
+          {{ n(energySummary.minutes, { maximumFractionDigits: 1 }) }}<small>{{ t('minutes') }}</small>
+        </div>
+        <p>
+          {{ t('net') }}
+          <b>{{ energySummary.net === null ? '—' : n(energySummary.net, { maximumFractionDigits: 0 }) + ' kcal' }}</b>
+        </p>
+        <p>{{ t('unestimated') }} {{ energySummary.unknown }}</p>
+      </article>
     </div>
-    <section class="panel range-energy">
-      <h3>{{ t('sessionMetrics') }}</h3>
-      <p>
-        <b>{{ n(energySummary.minutes, { maximumFractionDigits: 1 }) }} {{ t('minutes') }}</b> ·
-        {{ t('net') }}
-        <b>{{
-          energySummary.net === null
-            ? '—'
-            : n(energySummary.net, { maximumFractionDigits: 0 }) + ' kcal'
-        }}</b>
-        · {{ t('unestimated') }} {{ energySummary.unknown }}
-      </p>
-    </section>
     <div class="history-layout">
       <section class="panel">
         <h2>{{ t('history') }}</h2>
@@ -180,18 +178,37 @@ function addManual() {
           <p>{{ t('emptyHint') }}</p>
         </div>
         <article v-for="s in list" :key="s.id" class="history-row">
-          <button class="history-open" @click="selected = clone(s)">
-            <b>{{ s.snapshot.name }}</b><span
-              >{{ localDate(s.startedAt, store.data.settings.timeZone) }} · {{ t(s.status) }} ·
-              {{ t(s.source === 'manual' ? 'manualSource' : 'playerSource') }}</span
-            ><span
-              >{{ s.logs.filter((l) => l.status === 'completed').length }} {{ t('sets') }} ·
-              {{ n(s.minutes || 0, { maximumFractionDigits: 1 }) }}
-              {{ t('minutes') }}</span
-            ></button
-          ><button @click="remove(s.id)" :aria-label="t('delete')">
-            <Trash2 :size="18" />
-          </button>
+          <div class="history-details">
+            <b>{{ s.snapshot.name }}</b>
+            <span>
+              {{ localDate(s.startedAt, store.data.settings.timeZone) }} · {{ t(s.status) }} ·
+              {{ t(s.source === 'manual' ? 'manualSource' : 'playerSource') }}
+            </span>
+            <span>
+              {{ s.logs.filter((l) => l.status === 'completed').length }} {{ t('sets') }} ·
+              {{ n(s.minutes || 0, { maximumFractionDigits: 1 }) }} {{ t('minutes') }}
+            </span>
+          </div>
+          <div class="history-actions">
+            <button
+              type="button"
+              class="card-icon-button soft"
+              :aria-label="t('edit')"
+              :title="t('edit')"
+              @click="selected = clone(s)"
+            >
+              <Pencil :size="18" />
+            </button>
+            <button
+              type="button"
+              class="card-icon-button"
+              :aria-label="t('delete')"
+              :title="t('delete')"
+              @click="remove(s.id)"
+            >
+              <Trash2 :size="18" />
+            </button>
+          </div>
         </article>
       </section>
       <aside class="panel">
