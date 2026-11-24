@@ -8,7 +8,7 @@
 2. 以 `npm ci` 安裝鎖定套件。
 3. 執行單元及本機保存測試。
 4. 安裝 Playwright Chromium 與系統相依套件，執行瀏覽器流程測試。
-5. 以 `/myWorkoutApp/` 為資產根路徑建置。
+5. 以 `/myWorkoutApp/` 為資產根路徑建置，使用 Chromium 與 WebKit 驗證 PWA 路徑和離線重新載入。
 6. 保存測試報告與截圖，保留 14 天。
 7. 僅當 `main` 全部成功時，部署經驗證的 `dist` 至 GitHub Pages。
 
@@ -32,20 +32,19 @@ Pages： https://superrakce.github.io/myWorkoutApp/
 
 ```sh
 npm ci
-npx playwright install --with-deps chromium
+npx playwright install --with-deps chromium webkit
 ```
 
-在 Linux 雲端手動執行瀏覽器測試時使用 `CI=true npm run test:e2e`，以使用 Chromium 並確保測試不誤接既有開發伺服器。雲端環境需允許安裝套件及 Playwright 瀏覽器的網路存取。
+在 Linux 雲端手動執行瀏覽器測試時使用 `CI=true VITE_GOOGLE_CLIENT_ID=ci-test.apps.googleusercontent.com npm run test:e2e`，以使用 Chromium 並確保測試不誤接既有開發伺服器。雲端環境需允許安裝套件及 Playwright 瀏覽器的網路存取。
 
-這些設定不等於 App 已具有 PWA 離線安裝功能。首次載入、重新部署或同步 Git 仍需網路；個人訓練與飲食資料保存在使用者自己的瀏覽器，不會因部署而上傳 GitHub。更換網址時請自行匯出／還原 JSON。
+正式 PWA 建置會產生 manifest 與 service worker。首次載入和取得更新需要網路；個人訓練與飲食資料保存在使用者自己的瀏覽器，部署僅發布靜態程式。安裝方法與測試指令見 [PWA 開發與安裝](pwa.md)。
 
 ## 文件與素材
 
 - `document/rfq.txt`：完整需求。
-- `document/ui.txt`：初始主題方向。
-- `document/development.md`：第一版功能、執行方式及內容界線。
-- `document/verification.md`：第一版驗證紀錄。
+- `document/ui.txt`：現行介面規格。
+- `document/development.md`：現行功能、執行方式及內容界線。
+- `document/verification.md`：自動測試及人工驗收紀錄。
 - `document/asset-register.json`：原創占位圖的素材紀錄。
 - `document/references/`：研究來源及原始規格。
-- `document/screenshots/`：已保存的第一版示例畫面。
 - `test-results/`：當次測試產出的畫面，由 CI 以 artifact 保存，不提交至 Git。
