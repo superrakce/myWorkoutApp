@@ -27,8 +27,8 @@ jobs:
         run: npm ci
       - name: Unit and persistence tests
         run: npm test
-      - name: Install Chromium and system dependencies
-        run: npx playwright install --with-deps chromium
+      - name: Install Chromium, WebKit and system dependencies
+        run: npx playwright install --with-deps chromium webkit
       - name: Browser workflow tests
         run: npm run test:e2e
         env:
@@ -38,6 +38,8 @@ jobs:
         env:
           VITE_BASE_PATH: /myWorkoutApp/
           VITE_GOOGLE_CLIENT_ID: ${{ vars.VITE_GOOGLE_CLIENT_ID }}
+      - name: Verify Pages PWA and offline storage
+        run: npx playwright test --config playwright.pwa.config.js
       - name: Upload test report and screenshots
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v4
