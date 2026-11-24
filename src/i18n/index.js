@@ -30,7 +30,6 @@ const pairs = {
   nutritionEyebrow: ['Fuel your everyday', '為每一天，補足能量'],
   bodyEyebrow: ['A little more self-knowledge', '更了解自己的身體'],
   settingsEyebrow: ['Make it yours', '設定你的使用習慣'],
-  artCaption: ['Show up. Feel strong.', '從開始，到更有力量。'],
   edition: ['Personal edition', '個人版'],
   shortMinutes: ['{count} min', '{count} 分鐘'],
   chartMode: ['Chart scale', '圖表尺度'],
@@ -47,11 +46,6 @@ const pairs = {
   settings: ['Settings', '設定'],
   more: ['More', '更多'],
   local: ['Saved on this device', '資料保存在此裝置'],
-  welcome: ['Make room for a stronger you.', '為更好的自己，留一點時間。'],
-  welcomeSub: [
-    'One session, one meal, one small step at a time.',
-    '每一場訓練、每一餐，都是累積。',
-  ],
   today: ['Today', '今天'],
   start: ['Start training', '開始訓練'],
   explore: ['Explore exercises', '探索動作'],
@@ -323,7 +317,6 @@ const pairs = {
     '靜息代謝採 Mifflin–St Jeor 公式；MET 為自訂估計；初始食物為示例值。全部 SVG 為專案自製原創占位圖，尚非經審查的動作教學。',
   ],
   localOnly: ['LOCAL FIRST', '本機優先'],
-  weekFocus: ['Build your own rhythm', '找到自己的節奏'],
   noPlans: [
     'Create your first plan or use a starter template.',
     '建立第一份課表，或選擇起始模板。',
