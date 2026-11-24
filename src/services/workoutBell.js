@@ -7,6 +7,15 @@ const partials = [
   { frequency: 3527, level: 0.12, decay: 0.03 },
 ]
 const strikes = { working: 1, resting: 2, cooldown: 2, completed: 3 }
+const countdownTones = { workingEnding: [420], restingEnding: [900, 1220] }
+
+function countdownPattern(cue, offset = 0) {
+  return (countdownTones[cue] || []).map((frequency, index) => ({
+    offset: offset + index * 0.12,
+    duration: 0.16,
+    modes: [{ frequency, level: 0.5, decay: 0.042 }],
+  }))
+}
 
 let context
 let unlocking
@@ -35,9 +44,18 @@ export function stopWorkoutBell() {
   output = undefined
 }
 
-export async function playWorkoutBell(phase, volume) {
-  const count = strikes[phase]
-  if (!context || !count || !volume || document.hidden) return
+export async function playWorkoutBell(phase, volume, startsAtThree = false) {
+  if (!context || !volume || document.hidden) return
+  const pattern = strikes[phase]
+    ? Array.from({ length: strikes[phase] }, (_, index) => ({
+        offset: index * 0.18,
+        duration: 1.4,
+        modes: partials,
+      }))
+    : countdownPattern(phase)
+  // A three-second stage starts with the usual bell, then plays the warning before the timer shows 2.
+  if (startsAtThree) pattern.push(...countdownPattern(phase + 'Ending', 0.55))
+  if (!pattern.length) return
 
   stopWorkoutBell()
   const id = cueId
@@ -51,10 +69,12 @@ export async function playWorkoutBell(phase, volume) {
     bell.connect(context.destination)
     const start = context.currentTime + 0.01
     let lastOscillator
+    let lastEnd = 0
 
-    for (let strike = 0; strike < count; strike++) {
-      const at = start + strike * 0.18
-      for (const { frequency, level, decay } of partials) {
+    for (const { offset, duration, modes } of pattern) {
+      const at = start + offset
+      const end = at + duration
+      for (const { frequency, level, decay } of modes) {
         const oscillator = context.createOscillator()
         const envelope = context.createGain()
         oscillator.frequency.value = frequency
@@ -64,8 +84,11 @@ export async function playWorkoutBell(phase, volume) {
         oscillator.connect(envelope)
         envelope.connect(bell)
         oscillator.start(at)
-        oscillator.stop(at + 1.4)
-        lastOscillator = oscillator
+        oscillator.stop(end)
+        if (end > lastEnd) {
+          lastEnd = end
+          lastOscillator = oscillator
+        }
       }
     }
 
