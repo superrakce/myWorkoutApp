@@ -63,5 +63,5 @@ function save() {
 </template>
 <style scoped>
 .exercise-options { display: grid; grid-template-columns: repeat(auto-fit,minmax(125px,1fr)); gap: .5rem; }
-fieldset { min-width: 0; border: 1px solid #dce4ef; border-radius: 10px; padding: .75rem; margin: 1rem 0; }
+fieldset { min-width: 0; border: 1px solid var(--color-border); border-radius: 10px; padding: .75rem; margin: 1rem 0; }
 </style>

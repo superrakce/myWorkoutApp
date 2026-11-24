@@ -13,14 +13,20 @@ test('mobile bilingual workflow: filter, plan, play, records, food and backup', 
     .getByRole('textbox', { name: 'Search exercises in English or Chinese' })
     .fill('伏地挺身')
   await expect(page.getByText('3 exercises', { exact: true })).toBeVisible()
+  const firstExercise = page.locator('.exercise-card').first()
+  expect((await firstExercise.boundingBox()).height).toBeLessThan(165)
   await page.getByRole('button', { name: 'Add to plan', exact: true }).first().click()
   await page.getByRole('dialog').getByRole('button', { name: 'Add', exact: true }).click()
   await page.goto('/#/plans')
+  const firstPlan = page.locator('.plan-card').first()
+  await expect(firstPlan).toBeVisible()
+  expect((await firstPlan.boundingBox()).height).toBeLessThan(165)
   await page.getByRole('button', { name: 'Edit', exact: true }).first().click()
+  await expect(page.getByRole('combobox', { name: 'Playback order', exact: true }).first()).toHaveValue('circuit')
+  await expect(page.getByRole('option', { name: 'Straight sets' })).toHaveCount(0)
   await page.getByLabel('Sets', { exact: true }).fill('1')
   for (const label of [
     'Preparation',
-    'Between sets',
     'Between exercises',
     'Between rounds',
     'Cooldown',
@@ -124,6 +130,13 @@ test('body measurement and original-layout review', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
   await page.getByRole('button', { name: '繁中', exact: true }).click()
   await page.screenshot({ path: 'test-results/screenshots/mobile.png', fullPage: true })
+  await page.getByRole('button', { name: 'EN', exact: true }).click()
+  await page.goto('/#/plans')
+  const tabata = page.locator('.plan-card').filter({ hasText: '4-minute intervals' })
+  await tabata.getByRole('button', { name: 'Use template' }).click()
+  await expect(page.getByRole('heading', { name: 'Estimated workout calories' })).toBeVisible()
+  await page.getByLabel('Estimated intensity (MET)', { exact: true }).fill('6')
+  await expect(page.locator('.plan-energy .metric-number')).toHaveText(/20\s*kcal/)
   expect(errors).toEqual([])
 })
 test('pause checkpoint, skip, abort and reload do not duplicate sessions', async ({ page }) => {
@@ -189,4 +202,38 @@ test('a custom Tabata starts from the plan card, advances automatically, and can
   const backup = JSON.parse(await readFile(await (await downloaded).path(), 'utf8'))
   expect(backup.data.sessions).toEqual([])
   expect(backup.data.active).toBeNull()
+})
+
+
+test('overview quick actions open their forms and metrics sit beside the radar', async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('form-locale', 'en'))
+  await page.setViewportSize({ width: 1440, height: 950 })
+  await page.goto('/')
+  const actions = page.locator('.dashboard-actions')
+  await expect(actions.getByRole('link')).toHaveCount(3)
+  await expect(actions.getByRole('button', { name: 'Start training', exact: true })).toBeVisible()
+  await expect(page.locator('.dashboard-metrics .metric-card')).toHaveCount(4)
+  const metrics = await page.locator('.dashboard-metrics').boundingBox()
+  const radar = await page.locator('.dashboard-columns > .panel').boundingBox()
+  expect(metrics.x + metrics.width).toBeLessThan(radar.x)
+  await expect(page.getByText('Your next session', { exact: true })).toHaveCount(0)
+  await expect(page.getByText('Small steps, daily', { exact: true })).toHaveCount(0)
+  await expect(page.getByText('Training, in balance.', { exact: true })).toHaveCount(0)
+  expect(await page.locator('html').evaluate((el) => getComputedStyle(el).backgroundColor)).toBe('rgb(23, 44, 54)')
+  expect(await page.locator('.dashboard-metrics .metric-card').first().evaluate((el) => getComputedStyle(el).backgroundColor)).toBe('rgb(32, 57, 70)')
+  expect(await page.locator('.accent').evaluate((el) => getComputedStyle(el).backgroundColor)).toBe('rgb(243, 227, 8)')
+  expect(await actions.getByRole('link', { name: 'Create a plan', exact: true }).evaluate((el) => getComputedStyle(el).backgroundColor)).toBe('rgb(44, 76, 92)')
+
+  await actions.getByRole('link', { name: 'Log a meal', exact: true }).click()
+  await expect(page.getByRole('dialog', { name: 'Log a meal', exact: true })).toBeVisible()
+  await page.goto('/')
+  await actions.getByRole('link', { name: 'Add a measurement', exact: true }).click()
+  await expect(page.locator('#measurement-form h2')).toBeInViewport()
+
+  await page.setViewportSize({ width: 360, height: 800 })
+  await page.goto('/')
+  await expect(actions.getByRole('button', { name: 'Start training' })).toBeVisible()
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+  await actions.getByRole('link', { name: 'Create a plan', exact: true }).click()
+  await expect(page.getByLabel('Name', { exact: true })).toHaveValue('My training plan')
 })

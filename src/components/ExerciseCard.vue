@@ -1,43 +1,47 @@
 <script setup>
 import { useI18n } from 'vue-i18n'
-import { Heart, Plus } from 'lucide-vue-next'
-import ExerciseArt from './ExerciseArt.vue'
+import { Heart, Plus, Pencil, Trash2 } from 'lucide-vue-next'
 defineProps({ exercise: { type: Object, required: true }, favorite: Boolean })
 defineEmits(['details', 'favorite', 'add', 'edit', 'delete'])
 const { t, locale } = useI18n()
 </script>
+
 <template>
-  <article class="exercise-card">
-    <button class="art-button" @click="$emit('details')" :aria-label="exercise.name[locale]">
-      <ExerciseArt :part="exercise.primary[0]" /></button
-    ><button
-      class="favorite-button"
-      :class="{ active: favorite }"
-      :aria-label="t('favorite')"
-      :aria-pressed="favorite"
-      @click="$emit('favorite')"
-    >
-      <Heart :size="18" :fill="favorite ? 'currentColor' : 'none'" />
-    </button>
-    <div class="exercise-card-copy">
-      <span class="eyebrow">{{ t(exercise.type) }} · {{ t(exercise.difficulty) }}</span
-      ><button class="exercise-name" @click="$emit('details')">
-        {{ exercise.name[locale] }}
+  <article class="exercise-card compact-card">
+    <div class="compact-card-main">
+      <div class="compact-card-details">
+        <h3>
+          <button class="exercise-name" @click="$emit('details')">{{ exercise.name[locale] }}</button>
+        </h3>
+        <div class="compact-card-meta">
+          <span>{{ t('labels.' + exercise.primary[0]) }} · {{ t(exercise.difficulty) }}</span>
+          <span v-if="exercise.equipment.length">
+            {{ exercise.equipment.map((e) => t('labels.' + e)).join(' · ') }}
+          </span>
+        </div>
+      </div>
+      <button
+        class="card-icon-button card-primary-action"
+        :aria-label="t('addToPlan')"
+        :title="t('addToPlan')"
+        @click="$emit('add')"
+      ><Plus :size="19" /></button>
+    </div>
+    <div class="compact-card-actions">
+      <button
+        class="card-icon-button"
+        :class="{ active: favorite }"
+        :aria-label="t('favorite')"
+        :aria-pressed="favorite"
+        :title="t('favorite')"
+        @click="$emit('favorite')"
+      ><Heart :size="17" :fill="favorite ? 'currentColor' : 'none'" /></button>
+      <button class="card-icon-button" :aria-label="t('edit')" :title="t('edit')" @click="$emit('edit')">
+        <Pencil :size="16" />
       </button>
-      <p>{{ exercise.equipment.map((e) => t('labels.' + e)).join(' · ') }}</p>
-      <div class="card-bottom">
-        <span class="muscle-tag">{{ t('labels.' + exercise.primary[0]) }}</span><button
-          class="add-icon"
-          @click="$emit('add')"
-          :aria-label="t('addToPlan')"
-        >
-          <Plus :size="20" />
-        </button>
-      </div>
-      <div class="form-actions">
-        <button class="text-button" @click="$emit('edit')">{{ t('edit') }}</button>
-        <button class="text-button" @click="$emit('delete')">{{ t('delete') }}</button>
-      </div>
+      <button class="card-icon-button" :aria-label="t('delete')" :title="t('delete')" @click="$emit('delete')">
+        <Trash2 :size="16" />
+      </button>
     </div>
   </article>
 </template>

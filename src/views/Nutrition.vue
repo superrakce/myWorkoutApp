@@ -1,5 +1,6 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { Plus, Trash2, Copy, Pencil } from 'lucide-vue-next'
 import { useAppStore } from '../stores/app.js'
@@ -8,8 +9,10 @@ import NutritionEntryForm from '../components/NutritionEntryForm.vue'
 import EnergyStats from '../components/EnergyStats.vue'
 const store = useAppStore(),
   { t, n } = useI18n(),
+  route = useRoute(),
+  router = useRouter(),
   date = ref(localDate(new Date(), store.data.settings.timeZone)),
-  form = ref(false),
+  form = ref(route.query.new === '1'),
   editing = ref(null)
 const meals = computed(() => store.data.meals.filter((m) => m.date === date.value)),
   stats = computed(() => dailyStats(store.data, date.value)),
@@ -19,6 +22,7 @@ function update(k, v) {
   if (k === 'noExercise' && v) store.data.days[date.value].exerciseComplete = true
 }
 function openEntry(entry=null){editing.value=entry;form.value=true}
+onMounted(() => { if (route.query.new === '1') router.replace('/nutrition') })
 async function save(m) {
   const i = store.data.meals.findIndex((x) => x.id === m.id)
   if (i < 0) store.data.meals.push(m)

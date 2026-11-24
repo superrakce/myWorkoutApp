@@ -157,7 +157,7 @@ function remove(id) {
       <p v-if="restingHelp" class="small muted">{{ restingHelp }}</p>
     </article>
   </div>
-  <form class="panel body-form" @submit.prevent="save">
+  <form id="measurement-form" class="panel body-form" @submit.prevent="save">
     <h2>{{ t('addMeasurement') }}</h2>
     <p class="small muted">{{ t('savedMetricsHint') }}</p>
     <p class="small muted">{{ t('requiredFieldsHint') }}</p>
@@ -228,7 +228,7 @@ function remove(id) {
             .join(' ')
         "
         fill="none"
-        stroke="#1d4ed8"
+        stroke="var(--color-primary)"
         stroke-width="3"
       />
       <circle
@@ -245,7 +245,7 @@ function remove(id) {
             80
         "
         r="4"
-        fill="#1d4ed8"
+        fill="var(--color-primary)"
       />
     </svg>
     <p v-if="!history.length" class="muted">{{ t('noData') }}</p>

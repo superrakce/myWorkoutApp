@@ -67,7 +67,7 @@ function add() {
       name: t('newName'),
       description: '',
       sets: 3,
-      mode: 'straight',
+      mode: 'circuit',
       prepare: 5,
       setRest: 30,
       transitionRest: 20,
@@ -194,7 +194,6 @@ function addDetail(){adding.value=detail.value;detail.value=null}
           @add="adding = e"
         />
       </div>
-      <p class="muted small">{{ t('placeholder') }}</p>
     </section>
   </div>
   <ExerciseEditor v-if="editing" :key="editing.id || 'new'" :exercise="editing" :busy="saving" :error="formError" @save="saveExercise" @cancel="editing = null" />

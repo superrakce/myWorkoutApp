@@ -24,6 +24,8 @@ const router = createRouter({
     { path: '/settings', component: Settings },
     { path: '/player', component: Player },
   ],
-  scrollBehavior: () => ({ top: 0 }),
+  scrollBehavior: (to) => to.hash === '#measurement-form'
+    ? { el: to.hash, top: 88 }
+    : { top: 0 },
 })
 createApp(App).use(createPinia()).use(i18n).use(router).mount('#app')

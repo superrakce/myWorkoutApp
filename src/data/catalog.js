@@ -111,7 +111,7 @@ export const templates = [
       'zh-TW': '從規律開始，累積你的力量。',
     },
     sets: 3,
-    mode: 'straight',
+    mode: 'circuit',
     prepare: 5,
     setRest: 30,
     transitionRest: 20,

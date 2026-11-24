@@ -16,7 +16,7 @@ const select = (p) => (model.value = model.value === p ? '' : p)
       </button>
     </div>
     <svg class="body-map" viewBox="0 0 180 300" role="group" :aria-label="t('allParts')">
-      <g fill="#e0e8f3" stroke="#fff" stroke-width="2">
+      <g fill="var(--color-pressed)" stroke="var(--color-surface)" stroke-width="2">
         <circle cx="90" cy="27" r="18" />
         <path d="M78 46H102L108 64H72Z" />
         <path
@@ -30,7 +30,7 @@ const select = (p) => (model.value = model.value === p ? '' : p)
           }"
           :key="p"
           :d="path"
-          :fill="model === (rear && p === 'chest' ? 'back' : p) ? '#facc15' : undefined"
+          :fill="model === (rear && p === 'chest' ? 'back' : p) ? 'var(--color-accent)' : undefined"
           tabindex="0"
           role="button"
           :aria-label="t('labels.' + (rear && p === 'chest' ? 'back' : p))"

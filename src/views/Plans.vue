@@ -14,8 +14,12 @@ const store = useAppStore(),
   router = useRouter(),
   editing = ref(null)
 watch(
-  () => route.query.edit,
-  (id) => {
+  () => [route.query.edit, route.query.new],
+  ([id, isNew]) => {
+    if (isNew === '1') {
+      create()
+      return
+    }
     editing.value = store.data.plans.find((p) => p.id === id) || null
   },
   { immediate: true },
@@ -26,7 +30,7 @@ function create() {
     name: t('newName'),
     description: '',
     sets: 3,
-    mode: 'straight',
+    mode: 'circuit',
     prepare: 5,
     setRest: 30,
     transitionRest: 20,
@@ -77,19 +81,30 @@ function remove(id) {
   /><template v-else
     ><p v-if="!store.data.plans.length" class="callout">{{ t('noPlans') }}</p>
     <div class="plan-grid">
-      <div v-for="p in store.data.plans" :key="p.id">
-        <PlanCard
-          :plan="p"
-          @start="router.push('/player?plan=' + p.id)"
-          @edit="router.push('/plans?edit=' + p.id)"
-        />
-        <div class="plan-tools">
-          <button @click="p.favorite = !p.favorite" :aria-label="t('favorite')">
-            <Heart :size="17" :fill="p.favorite ? 'currentColor' : 'none'" /></button
-          ><button @click="duplicate(p)"><Copy :size="16" />{{ t('duplicate') }}</button
-          ><button @click="remove(p.id)"><Trash2 :size="16" />{{ t('delete') }}</button>
-        </div>
-      </div>
+      <PlanCard
+        v-for="p in store.data.plans"
+        :key="p.id"
+        :plan="p"
+        @start="router.push('/player?plan=' + p.id)"
+        @edit="router.push('/plans?edit=' + p.id)"
+      >
+        <template #actions>
+          <button
+            class="card-icon-button"
+            :class="{ active: p.favorite }"
+            :aria-label="t('favorite')"
+            :aria-pressed="Boolean(p.favorite)"
+            :title="t('favorite')"
+            @click="p.favorite = !p.favorite"
+          ><Heart :size="17" :fill="p.favorite ? 'currentColor' : 'none'" /></button>
+          <button class="card-icon-button" :aria-label="t('duplicate')" :title="t('duplicate')" @click="duplicate(p)">
+            <Copy :size="16" />
+          </button>
+          <button class="card-icon-button" :aria-label="t('delete')" :title="t('delete')" @click="remove(p.id)">
+            <Trash2 :size="16" />
+          </button>
+        </template>
+      </PlanCard>
     </div>
     <div class="section-heading spaced">
       <h2>{{ t('templates') }}</h2>

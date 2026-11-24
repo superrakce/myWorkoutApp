@@ -14,7 +14,7 @@ const store = useAppStore(),
   visible = ref(['consumed', 'resting', 'net'])
 const keys = ['consumed', 'resting', 'net'],
   labels = { consumed: 'intake', resting: 'resting', net: 'net' },
-  colors = { consumed: '#1d4ed8', resting: '#a16207', net: '#0f766e' }
+  colors = { consumed: 'var(--color-primary)', resting: 'var(--color-accent-line)', net: 'var(--palette-slate)' }
 const rows = computed(() =>
   datesBetween(start.value, end.value).map((date) => ({
     date,
@@ -61,8 +61,8 @@ const segments = computed(() =>
     </div>
     <svg class="energy-chart" viewBox="0 0 680 225" role="img" :aria-label="t('nutritionStats')">
       <g v-for="i in [0, 1, 2, 3]" :key="i">
-        <line x1="40" x2="650" :y1="30 + i * 53" :y2="30 + i * 53" stroke="#e2e8f0" />
-        <text x="2" :y="34 + i * 53" font-size="11" fill="#64748b">
+        <line x1="40" x2="650" :y1="30 + i * 53" :y2="30 + i * 53" stroke="var(--color-divider)" />
+        <text x="2" :y="34 + i * 53" font-size="11" fill="var(--color-text-muted)">
           {{ Math.round(max * (1 - i / 3)) }}
         </text>
       </g>
@@ -88,8 +88,8 @@ const segments = computed(() =>
           />
         </template>
       </template>
-      <text x="40" y="215" fill="#64748b" font-size="11">{{ start }}</text>
-      <text x="640" y="215" text-anchor="end" fill="#64748b" font-size="11">
+      <text x="40" y="215" fill="var(--color-text-muted)" font-size="11">{{ start }}</text>
+      <text x="640" y="215" text-anchor="end" fill="var(--color-text-muted)" font-size="11">
         {{ end }}
       </text>
     </svg>
