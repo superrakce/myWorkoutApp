@@ -1,18 +1,23 @@
 <script setup>
+import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { Play, Clock3, Dumbbell, Ellipsis } from 'lucide-vue-next'
+import { Play, Clock3, Dumbbell } from 'lucide-vue-next'
 import { duration } from '../services/domain.js'
-defineProps({ plan: { type: Object, required: true }, isTemplate: Boolean })
+const props = defineProps({ plan: { type: Object, required: true }, isTemplate: Boolean })
 defineEmits(['start', 'edit', 'use'])
 const { t, locale } = useI18n()
 const label = (v) => (typeof v === 'object' ? v[locale.value] : v)
+const seconds = computed(() => {
+  const total = duration(props.plan)
+  return total === null ? null : total - (props.plan.tabata ? props.plan.prepare : 0)
+})
 </script>
 <template>
   <article class="plan-card">
-    <div class="plan-visual" :class="{ interval: plan.id === 'tabata' }">
+    <div class="plan-visual" :class="{ interval: plan.tabata }">
       <div class="orb orb-one" />
       <div class="orb orb-two" />
-      <Dumbbell :size="70" :stroke-width="1" /><span class="visual-label">{{ t(plan.mode) }}</span
+      <Dumbbell :size="70" :stroke-width="1" /><span class="visual-label">{{ t(plan.tabata ? 'tabata' : plan.mode) }}</span
       ><span class="visual-number">{{ String(plan.items.length).padStart(2, '0') }}</span>
     </div>
     <div class="plan-card-content">
@@ -25,9 +30,9 @@ const label = (v) => (typeof v === 'object' ? v[locale.value] : v)
           {{ t('countSets', { count: plan.sets }, plan.sets) }}</span
         ><span
           ><Clock3 :size="15" />{{
-            duration(plan) === null
+            seconds === null
               ? t('timeUnknown')
-              : t('shortMinutes', { count: Math.ceil(duration(plan) / 60) })
+              : t('shortMinutes', { count: Math.ceil(seconds / 60) })
           }}</span
         >
       </div>
@@ -36,8 +41,12 @@ const label = (v) => (typeof v === 'object' ? v[locale.value] : v)
           ＋ {{ t('useTemplate') }}</button
         ><button v-else class="text-button" @click="$emit('edit')">
           {{ t('edit') }}</button
-        ><button class="play-button" :aria-label="t('start')" @click="$emit('start')">
-          <Play :size="18" fill="currentColor" />
+        ><button
+          :class="plan.tabata ? 'button primary' : 'play-button'"
+          :aria-label="t(plan.tabata ? 'tabataStart' : 'start')"
+          @click="$emit('start')"
+        >
+          <Play :size="18" fill="currentColor" />{{ plan.tabata ? t('tabataStart') : '' }}
         </button>
       </div>
     </div>

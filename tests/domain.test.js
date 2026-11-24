@@ -5,6 +5,7 @@ import {
   distribution,
   planDistribution,
   timeline,
+  validatePlan,
   duration,
   rmr,
   restingEstimate,
@@ -46,9 +47,24 @@ describe('workout timeline', () => {
     expect(steps.filter((s) => s.phase === 'resting').map((s) => s.seconds)).toEqual([20, 60, 20])
   })
   it('handles zero rest, single set and Tabata', () => {
-    expect(duration(templates[2])).toBe(240)
+    expect(duration(templates[2])).toBe(245)
+    expect(duration({ ...templates[2], prepare: 0 })).toBe(240)
     expect(duration(plan)).toBeNull()
     expect(timeline({ ...plan, sets: 1, items: [item('pushup')] })).toHaveLength(1)
+  })
+  it('uses timed movements and one uniform rest between Tabata efforts', () => {
+    const tabata = {
+      ...templates[2],
+      name: 'Intervals',
+      sets: 2,
+      items: plan.items.map((item) => ({ ...item, mode: 'time', target: 20 })),
+    }
+    expect(validatePlan(tabata)).toBe(true)
+    expect(validatePlan({ ...tabata, items: plan.items })).toBe(false)
+    expect(timeline(tabata).map(({ phase, seconds }) => [phase, seconds])).toEqual([
+      ['preparing', 5], ['working', 20], ['resting', 10], ['working', 20],
+      ['resting', 10], ['working', 20], ['resting', 10], ['working', 20], ['cooldown', 10],
+    ])
   })
 })
 describe('equipment semantics', () => {

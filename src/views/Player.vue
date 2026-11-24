@@ -22,8 +22,8 @@ if (typeof plan.name === 'object') {
   plan.name = plan.name[locale.value]
   plan.description = plan.description[locale.value]
 }
-const { session, stage, remaining, finished, owned, busy, resume, pause, advance, end, save } =
-  usePlayer(plan)
+const { session, stage, remaining, finished, owned, busy, resume, pause, advance, end, save, discard } =
+  usePlayer(plan, start)
 const exercise = computed(() =>
     stage.value?.exerciseId ? stage.value.exercise || store.findExercise(stage.value.exerciseId) : null,
   ),
@@ -31,7 +31,8 @@ const exercise = computed(() =>
     session.value?.stages.slice(session.value.cursor + 1).find((s) => s.phase === 'working'),
   )
 const audio = ref(null),
-  audioError = ref(false)
+  audioError = ref(false),
+  summaryPending = ref(false)
 let objectUrl, context
 function file(event) {
   if (!event.target.files?.length) return
@@ -91,9 +92,24 @@ watch(
   },
 )
 async function saveSession(draft) {
-  store.data.active = draft
-  await save()
-  router.push('/history')
+  if (summaryPending.value) return
+  summaryPending.value = true
+  try {
+    store.data.active = draft
+    await save()
+    await router.push('/history')
+  } finally {
+    summaryPending.value = false
+  }
+}
+async function discardSession() {
+  if (summaryPending.value) return
+  summaryPending.value = true
+  try {
+    if (await discard()) await router.push('/plans')
+  } finally {
+    summaryPending.value = false
+  }
 }
 onUnmounted(() => {
   audio.value?.pause()
@@ -104,13 +120,20 @@ onUnmounted(() => {
 <template>
   <div class="page-heading">
     <div>
-      <p class="eyebrow">{{ t('player') }}</p>
+      <p class="eyebrow">{{ t(session?.snapshot.tabata ? 'tabata' : 'player') }}</p>
       <h1>{{ session?.snapshot.name || plan.name }}</h1>
     </div>
   </div>
   <p v-if="busy" class="callout">{{ t('busy') }}</p>
   <template v-if="session && owned"
-    ><SessionSummary v-if="finished" :session="session" @save="saveSession" />
+    ><SessionSummary
+      v-if="finished"
+      :session="session"
+      :pending="summaryPending"
+      can-discard
+      @save="saveSession"
+      @discard="discardSession"
+    />
     <div v-else class="player-layout">
       <section class="panel workout-stage">
         <div class="section-heading">
