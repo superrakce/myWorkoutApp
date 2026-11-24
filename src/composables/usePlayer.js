@@ -20,6 +20,15 @@ export function usePlayer(plan, onCue) {
         : Math.max(0, stage.value.seconds - session.value.elapsed),
     ),
     finished = computed(() => ['completed', 'aborted'].includes(session.value?.status))
+  let resumingCheckpoint = session.value?.status === 'paused'
+
+  function cueCountdown(second) {
+    const phase = stage.value?.phase
+    if (second >= 1 && second <= 3 && ['working', 'resting'].includes(phase)) {
+      onCue(phase + 'Ending', second)
+      checkpoint()
+    }
+  }
   function checkpoint() {
     store.persist().catch(() => {})
   }
@@ -75,7 +84,10 @@ export function usePlayer(plan, onCue) {
     const starting = session.value.status === 'ready'
     session.value.status = stage.value.phase
     anchor = Date.now()
-    if (starting) onCue(stage.value.phase, Math.ceil(remaining.value))
+    const second = Math.ceil(remaining.value)
+    if (starting) onCue(stage.value.phase, second)
+    else if (resumingCheckpoint) cueCountdown(second)
+    resumingCheckpoint = false
     try {
       wake = await navigator.wakeLock?.request('screen')
     } catch {}
@@ -114,11 +126,8 @@ export function usePlayer(plan, onCue) {
     const after = remaining.value
     if (after === 0) {
       advance(false, true)
-    } else if (after !== null && ['working', 'resting'].includes(stage.value.phase)) {
-      const second = Math.ceil(after)
-      if (second <= 3 && second < Math.ceil(before)) {
-        onCue(stage.value.phase + 'Ending', second)
-      }
+    } else if (after !== null && Math.ceil(after) < Math.ceil(before)) {
+      cueCountdown(Math.ceil(after))
     }
   }
   function pause() {

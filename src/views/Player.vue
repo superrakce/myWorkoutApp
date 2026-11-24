@@ -63,9 +63,9 @@ function start() {
 function ring(phase, countdownSecond) {
   playWorkoutBell(phase, store.data.settings.cueVolume, countdownSecond)
 }
-function previewBell() {
+function previewCue(phase, second) {
   unlockWorkoutBell()
-  ring('working')
+  ring(phase, second)
 }
 watch(
   () => session.value?.status,
@@ -212,14 +212,32 @@ onUnmounted(() => {
             step="0.05"
             v-model.number="store.data.settings.cueVolume"
         /></label>
-        <button
-          type="button"
-          class="button soft"
-          :disabled="!store.data.settings.cueVolume"
-          @click="previewBell"
-        >
-          <Bell :size="16" />{{ t('previewBell') }}
-        </button>
+        <div class="player-controls">
+          <button
+            type="button"
+            class="button soft"
+            :disabled="!store.data.settings.cueVolume"
+            @click="previewCue('working')"
+          >
+            <Bell :size="16" />{{ t('previewBell') }}
+          </button>
+          <button
+            type="button"
+            class="button soft"
+            :disabled="!store.data.settings.cueVolume"
+            @click="previewCue('workingEnding', 3)"
+          >
+            {{ t('previewWorkCountdown') }}
+          </button>
+          <button
+            type="button"
+            class="button soft"
+            :disabled="!store.data.settings.cueVolume"
+            @click="previewCue('restingEnding', 3)"
+          >
+            {{ t('previewRestCountdown') }}
+          </button>
+        </div>
         <p v-if="audioError" class="error">
           {{ t('audioFailed') }}<button @click="playAudio">{{ t('retry') }}</button>
         </p>

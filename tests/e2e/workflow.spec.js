@@ -303,30 +303,49 @@ test('Tabata plays one distinct key tone at 3, 2 and 1 for timed work and rest',
     await expect(page.locator('.timer')).toHaveText(new RegExp('^' + second + '\\s*Seconds$'))
     await expect.poll(notes).toEqual(allNotes)
   }
+  // Wait for the live final-second checkpoint, then reload without pressing Pause.
+  await expect.poll(() => page.evaluate(async () => {
+    const { readData } = await import('/src/repositories/database.js')
+    const { active } = await readData()
+    return Math.ceil(active.stages[active.cursor].seconds - active.elapsed)
+  })).toBe(1)
+  await page.reload()
+  await expect(page.locator('.timer')).toHaveText(/^1\s*Seconds$/)
+  await page.getByRole('button', { name: 'Resume', exact: true }).click()
+  await expect.poll(notes).toEqual([[840, 'sine']])
   await page.clock.runFor(1200)
   await expect(page.getByText('Time to move', { exact: true })).toBeVisible()
-  expect(await notes()).toEqual(allNotes)
+  expect(await notes()).toEqual([[840, 'sine']])
 })
 
-test('the player can preview and mute the bell before starting', async ({ page }) => {
+test('the player can preview and mute the bell and countdown before starting', async ({ page }) => {
   await page.addInitScript(() => {
     localStorage.setItem('form-locale', 'en')
-    window.previewStarts = 0
+    window.previewStarts = []
     const start = OscillatorNode.prototype.start
     OscillatorNode.prototype.start = function (time) {
       start.call(this, time)
-      window.previewStarts++
+      window.previewStarts.push(this.frequency.value)
     }
   })
   await page.goto('/#/player')
   const preview = page.getByRole('button', { name: 'Preview bell' })
   const volume = page.getByRole('slider', { name: 'Bell volume' })
   await volume.press('Home')
+  const work = page.getByRole('button', { name: 'Preview work countdown' })
+  const rest = page.getByRole('button', { name: 'Preview rest countdown' })
   await expect(preview).toBeDisabled()
+  await expect(work).toBeDisabled()
+  await expect(rest).toBeDisabled()
   await expect(volume).toHaveValue('0')
   await volume.press('End')
   await preview.click()
-  await expect.poll(() => page.evaluate(() => window.previewStarts)).toBeGreaterThan(0)
+  const previewed = () => page.evaluate(() => window.previewStarts)
+  await expect.poll(previewed).toContain(560)
+  await work.click()
+  await expect.poll(previewed).toContain(520)
+  await rest.click()
+  await expect.poll(previewed).toContain(1120)
   await expect(page.getByRole('button', { name: 'Start training', exact: true })).toBeVisible()
 })
 
