@@ -187,8 +187,20 @@ test('pause checkpoint, skip, abort and reload do not duplicate sessions', async
 })
 
 
-test('a custom Tabata starts from the plan card, advances automatically, and can be discarded', async ({ page }) => {
-  await page.addInitScript(() => localStorage.setItem('form-locale', 'en'))
+test('a custom Tabata starts from the plan card, rings at each phase, and can be discarded', async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem('form-locale', 'en')
+    window.bellStarts = []
+    const start = OscillatorNode.prototype.start
+    OscillatorNode.prototype.start = function (time) {
+      start.call(this, time)
+      window.bellStarts.push(time)
+    }
+  })
+  const expectStrikes = async (count) => {
+    await expect.poll(() => page.evaluate(() => new Set(window.bellStarts).size)).toBe(count)
+    await page.evaluate(() => (window.bellStarts = []))
+  }
   await page.clock.install()
   await page.goto('/#/plans')
   await page.getByRole('button', { name: 'Create a plan', exact: true }).click()
@@ -213,12 +225,20 @@ test('a custom Tabata starts from the plan card, advances automatically, and can
   await card.getByRole('button', { name: 'Start Tabata', exact: true }).click()
   await expect(page.getByText('Get ready', { exact: true })).toBeVisible()
   await expect(page.getByRole('button', { name: 'Start training', exact: true })).toHaveCount(0)
-  for (const label of ['Time to move', 'Take a breath', 'Time to move', 'Ease into your cooldown']) {
+  await expectStrikes(0)
+  for (const [label, strikes] of [
+    ['Time to move', 1],
+    ['Take a breath', 2],
+    ['Time to move', 1],
+    ['Ease into your cooldown', 2],
+  ]) {
     await page.clock.runFor(1100)
     await expect(page.getByText(label, { exact: true }).first()).toBeVisible()
+    await expectStrikes(strikes)
   }
   await page.clock.runFor(1100)
   await expect(page.getByRole('heading', { name: 'Session summary', exact: true })).toBeVisible()
+  await expectStrikes(3)
   await expect(page.getByRole('checkbox', { name: 'Confirmed complete' })).toHaveCount(2)
   await page.getByRole('button', { name: 'Leave without saving', exact: true }).click()
   await expect(page).toHaveURL(/#\/plans$/)
@@ -231,6 +251,28 @@ test('a custom Tabata starts from the plan card, advances automatically, and can
   expect(backup.data.active).toBeNull()
 })
 
+
+test('the player can preview and mute the bell before starting', async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem('form-locale', 'en')
+    window.previewStarts = 0
+    const start = OscillatorNode.prototype.start
+    OscillatorNode.prototype.start = function (time) {
+      start.call(this, time)
+      window.previewStarts++
+    }
+  })
+  await page.goto('/#/player')
+  const preview = page.getByRole('button', { name: 'Preview bell' })
+  const volume = page.getByRole('slider', { name: 'Bell volume' })
+  await volume.press('Home')
+  await expect(preview).toBeDisabled()
+  await expect(volume).toHaveValue('0')
+  await volume.press('End')
+  await preview.click()
+  await expect.poll(() => page.evaluate(() => window.previewStarts)).toBeGreaterThan(0)
+  await expect(page.getByRole('button', { name: 'Start training', exact: true })).toBeVisible()
+})
 
 test('overview quick actions open their forms and metrics sit beside the radar', async ({ page }) => {
   await page.addInitScript(() => localStorage.setItem('form-locale', 'en'))

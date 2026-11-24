@@ -6,6 +6,7 @@ import { Flame, Utensils, Activity, Plus, Play, CalendarDays } from 'lucide-vue-
 import { useAppStore } from '../stores/app.js'
 import { templates } from '../data/catalog.js'
 import { localDate, dailyStats, distribution, rangeSets } from '../services/domain.js'
+import { unlockWorkoutBell } from '../services/workoutBell.js'
 import TrainingRadar from '../components/TrainingRadar.vue'
 const store = useAppStore(),
   { t, n } = useI18n(),
@@ -18,6 +19,7 @@ const today = computed(() => localDate(new Date(), store.data.settings.timeZone)
     ),
   )
 function start(plan) {
+  unlockWorkoutBell()
   if (store.data.active) {
     router.push('/player')
     return

@@ -1,7 +1,7 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useAppStore } from '../stores/app.js'
 import { clone, timeline, uid, validatePlan } from '../services/domain.js'
-export function usePlayer(plan, onAutoStart) {
+export function usePlayer(plan, onCue) {
   const store = useAppStore(),
     owned = ref(false),
     busy = ref(false),
@@ -65,15 +65,17 @@ export function usePlayer(plan, onAutoStart) {
       }
       const held = new Promise((resolve) => (release = resolve))
       owned.value = true
-      if (create() && plan.tabata && !document.hidden) onAutoStart()
+      if (create() && plan.tabata && !document.hidden) resume()
       await held
       owned.value = false
     })
   }
   async function resume() {
     if (!owned.value || !stage.value || finished.value) return
+    const starting = session.value.status === 'ready'
     session.value.status = stage.value.phase
     anchor = Date.now()
+    if (starting) onCue(stage.value.phase)
     try {
       wake = await navigator.wakeLock?.request('screen')
     } catch {}
@@ -159,6 +161,7 @@ export function usePlayer(plan, onAutoStart) {
       session.value.minutes = session.value.activeSeconds / 60
       wake?.release().catch(() => {})
     } else session.value.status = stage.value.phase
+    onCue(session.value.status)
     checkpoint()
   }
   function end() {
