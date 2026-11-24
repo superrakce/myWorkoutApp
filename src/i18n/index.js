@@ -180,6 +180,8 @@ const pairs = {
   musicVolume: ['Music volume', '音樂音量'],
   cueVolume: ['Bell volume', '鈴聲音量'],
   previewBell: ['Preview bell', '試聽鈴聲'],
+  previewWorkCountdown: ['Preview work countdown', '試聽訓練倒數音'],
+  previewRestCountdown: ['Preview rest countdown', '試聽休息倒數音'],
   audioFailed: [
     'Audio unavailable. Select another file or retry.',
     '無法播放音訊，請更換檔案或重試。',
