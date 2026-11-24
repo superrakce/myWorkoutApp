@@ -119,10 +119,7 @@ onUnmounted(() => {
 </script>
 <template>
   <div class="page-heading">
-    <div>
-      <p class="eyebrow">{{ t(session?.snapshot.tabata ? 'tabata' : 'player') }}</p>
-      <h1>{{ session?.snapshot.name || plan.name }}</h1>
-    </div>
+    <h1>{{ session?.snapshot.name || plan.name }}</h1>
   </div>
   <p v-if="busy" class="callout">{{ t('busy') }}</p>
   <template v-if="session && owned"

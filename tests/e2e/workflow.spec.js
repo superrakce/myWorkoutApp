@@ -93,6 +93,8 @@ test('mobile bilingual workflow: filter, plan, play, records, food and backup', 
       '/settings',
     ]) {
       await page.goto('/#' + route)
+      await expect(page.locator('main .page-heading h1')).toBeVisible()
+      await expect(page.locator('main .page-heading p')).toHaveCount(0)
       await page.waitForTimeout(80)
       expect(
         await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
@@ -217,6 +219,9 @@ test('overview quick actions open their forms and metrics sit beside the radar',
   const metrics = await page.locator('.dashboard-metrics').boundingBox()
   const radar = await page.locator('.dashboard-columns > .panel').boundingBox()
   expect(metrics.x + metrics.width).toBeLessThan(radar.x)
+  await expect(page.getByText('Build your own rhythm', { exact: true })).toHaveCount(0)
+  await expect(page.getByRole('heading', { name: 'Activity', exact: true })).toHaveCount(0)
+  await expect(page.locator('.sidebar').getByRole('link', { name: 'Activity', exact: true })).toBeVisible()
   await expect(page.getByText('Your next session', { exact: true })).toHaveCount(0)
   await expect(page.getByText('Small steps, daily', { exact: true })).toHaveCount(0)
   await expect(page.getByText('Training, in balance.', { exact: true })).toHaveCount(0)

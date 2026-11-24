@@ -100,11 +100,7 @@ function addDetail(){adding.value=detail.value;detail.value=null}
 </script>
 <template>
   <div class="page-heading">
-    <div>
-      <p class="eyebrow">{{ t('exerciseEyebrow') }}</p>
-      <h1>{{ t('exercises') }}</h1>
-      <p class="muted">{{ t('explore') }}</p>
-    </div>
+    <h1>{{ t('exercises') }}</h1>
     <div class="form-actions">
       <button class="button primary" @click="editExercise({})">{{ t('newExercise') }}</button>
       <RouterLink to="/plans" class="button soft">{{ t('plans') }}</RouterLink>

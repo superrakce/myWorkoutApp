@@ -95,10 +95,7 @@ function zone(e) {
 </script>
 <template>
   <div class="page-heading">
-    <div>
-      <p class="eyebrow">{{ t('settingsEyebrow') }}</p>
-      <h1>{{ t('settings') }}</h1>
-    </div>
+    <h1>{{ t('settings') }}</h1>
   </div>
   <AccountSyncPanel />
   <div class="settings-grid">

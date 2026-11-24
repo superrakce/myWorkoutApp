@@ -27,6 +27,7 @@ const initial = () => ({
   }),
   draft = ref(initial())
 const fields = ['height', 'weight', 'bodyFat', 'fatMass', 'muscle', 'skeletal', 'waist', 'rmr'],
+  requiredMeasurements = ['height', 'weight'],
   labels = {
     height: 'height',
     weight: 'bodyWeight',
@@ -118,12 +119,8 @@ function remove(id) {
 </script>
 <template>
   <div class="page-heading">
-    <div>
-      <p class="eyebrow">{{ t('bodyEyebrow') }}</p>
-      <h1>{{ t('body') }}</h1>
-    </div>
+    <h1>{{ t('body') }}</h1>
   </div>
-  <p class="muted">{{ t('bodyHint') }}</p>
   <div class="metric-grid three">
     <article class="metric-card">
       <span class="muted">{{ t('bmi') }}</span>
@@ -159,37 +156,39 @@ function remove(id) {
   </div>
   <form id="measurement-form" class="panel body-form" @submit.prevent="save">
     <h2>{{ t('addMeasurement') }}</h2>
-    <p class="small muted">{{ t('savedMetricsHint') }}</p>
-    <p class="small muted">{{ t('requiredFieldsHint') }}</p>
     <div ref="profileFields" class="form-grid three">
-      <label class="required-field"
-        >{{ t('measurementDate') }}<input type="datetime-local" v-model="draft.measuredAt" aria-describedby="measurement-date-hint" required /></label>
-      <label class="required-field"
-        >{{ t('age') }}<input type="number" min="1" max="120" step="1" v-model.number="profile.age" required /></label
-      
-      ><label class="required-field"
-        >{{ t('sex')
-        }}<select v-model="profile.sex" required>
+      <label>
+        <span>{{ t('measurementDate') }} <span class="required-marker" aria-hidden="true"></span></span>
+        <input type="datetime-local" v-model="draft.measuredAt" aria-describedby="measurement-date-hint" required />
+      </label>
+      <label>
+        <span>{{ t('age') }} <span class="required-marker" aria-hidden="true"></span></span>
+        <input type="number" min="1" max="120" step="1" v-model.number="profile.age" required />
+      </label>
+      <label>
+        <span>{{ t('sex') }} <span class="required-marker" aria-hidden="true"></span></span>
+        <select v-model="profile.sex" required>
           <option value="" disabled>{{ t('chooseFormulaSex') }}</option>
           <option value="male">{{ t('male') }}</option>
           <option value="female">{{ t('female') }}</option>
-        </select></label
-      >
+        </select>
+      </label>
     </div>
     <p id="measurement-date-hint" class="small muted">{{ t('measurementDateHint') }}</p>
     <button type="button" class="button" @click="saveProfile">{{ t('saveProfile') }}</button>
     <div class="form-grid three">
-      <label v-for="k in fields" :key="k" :class="{ 'required-field': k === 'height' || k === 'weight' }"
-        >{{ t(labels[k])
-        }}<input
+      <label v-for="k in fields" :key="k">
+        <span>{{ t(labels[k]) }} <span v-if="requiredMeasurements.includes(k)" class="required-marker" aria-hidden="true"></span></span>
+        <input
           type="number"
           :min="k === 'height' ? 50 : k === 'weight' ? 10 : 0"
-          :max="k === 'bodyFat' ? 100 : k === 'height' ? 260 : k === 'weight' ? 500 : 10000"
+          :max="k === 'height' ? 260 : k === 'weight' ? 500 : k === 'bodyFat' ? 100 : 10000"
           step="0.1"
           v-model="draft[k]"
-          :required="k === 'height' || k === 'weight'"
-          :placeholder="t(k === 'height' || k === 'weight' ? 'requiredField' : 'optional')" /></label
-      >
+          :required="requiredMeasurements.includes(k)"
+          :placeholder="requiredMeasurements.includes(k) ? undefined : t('optional')"
+        />
+      </label>
     </div>
     <CalculatedBodyFields :measurement="draft" :profile="profile" :date="draft.measuredAt.slice(0, 10)" />
     <p class="small muted">{{ t('measuredRmrHint') }}</p>
@@ -281,3 +280,12 @@ function remove(id) {
     </article>
   </section>
 </template>
+
+
+<style scoped>
+.required-marker::before {
+  content: '*';
+  color: var(--color-danger);
+  font-weight: 700;
+}
+</style>

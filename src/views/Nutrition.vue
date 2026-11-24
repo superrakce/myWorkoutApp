@@ -44,10 +44,7 @@ function copy(meal) {
 </script>
 <template>
   <div class="page-heading">
-    <div>
-      <p class="eyebrow">{{ t('nutritionEyebrow') }}</p>
-      <h1>{{ t('nutrition') }}</h1>
-    </div>
+    <h1>{{ t('nutrition') }}</h1>
     <button
       class="button primary"
       @click="openEntry()"

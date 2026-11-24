@@ -68,8 +68,14 @@ test('required calculation inputs prevent incomplete records and profile saves',
   const height = page.getByLabel('Height (cm)', { exact: true })
   const weight = page.getByLabel('Body weight (kg)', { exact: true })
   const date = page.getByLabel('Measurement date and time', { exact: true })
-  for (const field of [age, sex, height, weight, date])
+  for (const field of [age, sex, height, weight, date]) {
     await expect(field).toHaveAttribute('required', '')
+    const marker = field.locator('..').locator('.required-marker')
+    await expect(marker).toBeVisible()
+    expect(await marker.evaluate((el) => getComputedStyle(el, '::before').content)).toBe('"*"')
+    expect(await marker.evaluate((el) => getComputedStyle(el, '::before').color)).toBe('rgb(255, 191, 193)')
+  }
+  await expect(page.locator('.body-form .required-marker')).toHaveCount(5)
   await page.getByRole('button', { name: 'Save', exact: true }).click()
   await expect(page.locator('.history-row')).toHaveCount(0)
   await expect(page.getByRole('status')).toHaveCount(0)

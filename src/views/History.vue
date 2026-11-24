@@ -137,10 +137,7 @@ function addManual() {
 </script>
 <template>
   <div class="page-heading">
-    <div>
-      <p class="eyebrow">{{ t('historyEyebrow') }}</p>
-      <h1>{{ t('history') }}</h1>
-    </div>
+    <h1>{{ t('history') }}</h1>
     <button class="button primary" @click="exerciseId = store.exercises[0]?.id || ''; manual = true" :disabled="!store.exercises.length">
       <Plus :size="18" />{{ t('manual') }}
     </button>

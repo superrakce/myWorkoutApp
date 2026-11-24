@@ -2,13 +2,13 @@
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
-import { Flame, Utensils, Activity, Plus, Play, CalendarDays, Dumbbell } from 'lucide-vue-next'
+import { Flame, Utensils, Activity, Plus, Play, CalendarDays } from 'lucide-vue-next'
 import { useAppStore } from '../stores/app.js'
 import { templates } from '../data/catalog.js'
 import { localDate, dailyStats, distribution, rangeSets } from '../services/domain.js'
 import TrainingRadar from '../components/TrainingRadar.vue'
 const store = useAppStore(),
-  { t, locale, n } = useI18n(),
+  { t, n } = useI18n(),
   router = useRouter()
 const today = computed(() => localDate(new Date(), store.data.settings.timeZone)),
   stats = computed(() => dailyStats(store.data, today.value)),
@@ -17,14 +17,6 @@ const today = computed(() => localDate(new Date(), store.data.settings.timeZone)
       rangeSets(store.data.sessions, today.value, today.value, store.data.settings.timeZone),
     ),
   )
-const date = computed(() =>
-  new Intl.DateTimeFormat(locale.value, {
-    weekday: 'long',
-    month: 'long',
-    day: 'numeric',
-    timeZone: store.data.settings.timeZone,
-  }).format(new Date()),
-)
 function start(plan) {
   if (store.data.active) {
     router.push('/player')
@@ -35,10 +27,7 @@ function start(plan) {
 </script>
 <template>
   <div class="page-heading dashboard-heading">
-    <div>
-      <p class="eyebrow">{{ date }}</p>
-      <h1>{{ t('overview') }}</h1>
-    </div>
+    <h1>{{ t('overview') }}</h1>
     <div class="dashboard-actions">
       <RouterLink :to="{ path: '/plans', query: { new: '1' } }" class="button primary">
         <Plus :size="17" />{{ t('newPlan') }}
@@ -54,28 +43,6 @@ function start(plan) {
       </button>
     </div>
   </div>
-  <section class="hero">
-    <div class="hero-copy">
-      <p class="eyebrow"><span class="yellow-dot" />{{ t('weekFocus') }}</p>
-      <h2>{{ t('welcome') }}</h2>
-      <p>{{ t('welcomeSub') }}</p>
-      <RouterLink to="/exercises" class="hero-link">{{ t('explore') }}</RouterLink>
-    </div>
-    <div class="hero-art" aria-hidden="true">
-      <div class="hero-ring ring1" />
-      <div class="hero-ring ring2" />
-      <svg viewBox="0 0 330 280">
-        <g transform="rotate(-32 165 140)">
-          <rect x="80" y="124" width="170" height="25" rx="8" fill="var(--palette-ash)" />
-          <rect x="75" y="79" width="35" height="115" rx="10" fill="var(--color-accent)" />
-          <rect x="51" y="96" width="26" height="81" rx="8" fill="var(--color-accent-hover)" />
-          <rect x="220" y="79" width="35" height="115" rx="10" fill="var(--color-accent)" />
-          <rect x="255" y="96" width="26" height="81" rx="8" fill="var(--color-accent-hover)" />
-          <path d="M86 90V180M231 90V180" stroke="var(--color-on-action)" opacity=".3" stroke-width="4" />
-        </g></svg
-      ><span class="art-caption">{{ t('artCaption') }}</span>
-    </div>
-  </section>
   <div class="dashboard-columns">
     <section class="dashboard-statistics">
       <div class="section-heading overview-title">
@@ -119,27 +86,6 @@ function start(plan) {
       </div>
     </div>
   </div>
-  <section class="panel recent-section">
-    <div class="section-heading">
-      <h2>{{ t('history') }}</h2>
-      <RouterLink to="/history">{{ t('viewAll') }}</RouterLink>
-    </div>
-    <div v-if="!store.data.sessions.length" class="empty-inline">
-      <div class="empty-icon"><Dumbbell :size="26" /></div>
-      <div>
-        <h3>{{ t('emptyHistory') }}</h3>
-        <p>{{ t('emptyHint') }}</p>
-      </div>
-    </div>
-    <RouterLink
-      v-for="s in store.data.sessions.slice(-3).reverse()"
-      :key="s.id"
-      to="/history"
-      class="history-preview"
-      ><b>{{ s.snapshot.name }}</b
-      ><span>{{ localDate(s.startedAt) }} · {{ t(s.status) }}</span></RouterLink
-    >
-  </section>
 </template>
 
 
