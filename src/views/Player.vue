@@ -2,11 +2,12 @@
 import { computed, ref, watch, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { Play, Pause, SkipForward, Square } from 'lucide-vue-next'
+import { Bell, Play, Pause, SkipForward, Square } from 'lucide-vue-next'
 import { useAppStore } from '../stores/app.js'
 import { templates } from '../data/catalog.js'
 import { clone } from '../services/domain.js'
 import { usePlayer } from '../composables/usePlayer.js'
+import { playWorkoutBell, stopWorkoutBell, unlockWorkoutBell } from '../services/workoutBell.js'
 import ExerciseArt from '../components/ExerciseArt.vue'
 import SessionSummary from '../components/SessionSummary.vue'
 const store = useAppStore(),
@@ -23,7 +24,7 @@ if (typeof plan.name === 'object') {
   plan.description = plan.description[locale.value]
 }
 const { session, stage, remaining, finished, owned, busy, resume, pause, advance, end, save, discard } =
-  usePlayer(plan, start)
+  usePlayer(plan, ring)
 const exercise = computed(() =>
     stage.value?.exerciseId ? stage.value.exercise || store.findExercise(stage.value.exerciseId) : null,
   ),
@@ -33,7 +34,7 @@ const exercise = computed(() =>
 const audio = ref(null),
   audioError = ref(false),
   summaryPending = ref(false)
-let objectUrl, context
+let objectUrl
 function file(event) {
   if (!event.target.files?.length) return
   audio.value?.pause()
@@ -55,17 +56,22 @@ async function playAudio() {
   }
 }
 function start() {
-  try {
-    context ??= new AudioContext()
-    context.resume().catch(() => {})
-  } catch {}
+  unlockWorkoutBell()
   resume()
   playAudio()
+}
+function ring(phase) {
+  playWorkoutBell(phase, store.data.settings.cueVolume)
+}
+function previewBell() {
+  unlockWorkoutBell()
+  ring('working')
 }
 watch(
   () => session.value?.status,
   (s) => {
     if (['paused', 'completed', 'aborted', 'ready'].includes(s)) audio.value?.pause()
+    if (['paused', 'aborted', 'ready'].includes(s)) stopWorkoutBell()
   },
 )
 watch(
@@ -75,20 +81,9 @@ watch(
   },
 )
 watch(
-  () => session.value?.cursor,
-  () => {
-    if (!store.data.settings.cueVolume) return
-    try {
-      context ??= new AudioContext()
-      const oscillator = context.createOscillator(),
-        gain = context.createGain()
-      oscillator.connect(gain)
-      gain.connect(context.destination)
-      gain.gain.value = store.data.settings.cueVolume * 0.1
-      oscillator.frequency.value = 660
-      oscillator.start()
-      oscillator.stop(context.currentTime + 0.12)
-    } catch {}
+  () => store.data.settings.cueVolume,
+  (volume) => {
+    if (!volume) stopWorkoutBell()
   },
 )
 async function saveSession(draft) {
@@ -114,7 +109,7 @@ async function discardSession() {
 onUnmounted(() => {
   audio.value?.pause()
   if (objectUrl) URL.revokeObjectURL(objectUrl)
-  context?.close()
+  stopWorkoutBell()
 })
 </script>
 <template>
@@ -217,6 +212,14 @@ onUnmounted(() => {
             step="0.05"
             v-model.number="store.data.settings.cueVolume"
         /></label>
+        <button
+          type="button"
+          class="button soft"
+          :disabled="!store.data.settings.cueVolume"
+          @click="previewBell"
+        >
+          <Bell :size="16" />{{ t('previewBell') }}
+        </button>
         <p v-if="audioError" class="error">
           {{ t('audioFailed') }}<button @click="playAudio">{{ t('retry') }}</button>
         </p>

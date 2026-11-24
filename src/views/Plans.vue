@@ -6,6 +6,7 @@ import { Plus, Copy, Trash2, Heart } from 'lucide-vue-next'
 import { useAppStore } from '../stores/app.js'
 import { templates } from '../data/catalog.js'
 import { clone } from '../services/domain.js'
+import { unlockWorkoutBell } from '../services/workoutBell.js'
 import PlanCard from '../components/PlanCard.vue'
 import PlanEditor from '../components/PlanEditor.vue'
 const store = useAppStore(),
@@ -38,6 +39,10 @@ function create() {
     cooldown: 10,
     items: [],
   }
+}
+function start(plan) {
+  unlockWorkoutBell()
+  router.push('/player?plan=' + plan.id)
 }
 function useTemplate(p) {
   const d = clone(p)
@@ -82,7 +87,7 @@ function remove(id) {
         v-for="p in store.data.plans"
         :key="p.id"
         :plan="p"
-        @start="router.push('/player?plan=' + p.id)"
+        @start="start(p)"
         @edit="router.push('/plans?edit=' + p.id)"
       >
         <template #actions>
@@ -113,7 +118,7 @@ function remove(id) {
         :plan="p"
         is-template
         @use="useTemplate(p)"
-        @start="router.push('/player?plan=' + p.id)"
+        @start="start(p)"
       /></div
   ></template>
 </template>

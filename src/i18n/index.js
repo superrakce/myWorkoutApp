@@ -178,7 +178,8 @@ const pairs = {
   ],
   music: ['Local music (this session only)', '本機音樂（僅限本次）'],
   musicVolume: ['Music volume', '音樂音量'],
-  cueVolume: ['Cue volume', '提示音量'],
+  cueVolume: ['Bell volume', '鈴聲音量'],
+  previewBell: ['Preview bell', '試聽鈴聲'],
   audioFailed: [
     'Audio unavailable. Select another file or retry.',
     '無法播放音訊，請更換檔案或重試。',
