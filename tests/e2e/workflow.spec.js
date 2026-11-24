@@ -93,6 +93,8 @@ test('mobile bilingual workflow: filter, plan, play, records, food and backup', 
       '/settings',
     ]) {
       await page.goto('/#' + route)
+      await expect(page.locator('main .page-heading h1')).toBeVisible()
+      await expect(page.locator('main .page-heading p')).toHaveCount(0)
       await page.waitForTimeout(80)
       expect(
         await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),

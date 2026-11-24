@@ -8,7 +8,7 @@ import { templates } from '../data/catalog.js'
 import { localDate, dailyStats, distribution, rangeSets } from '../services/domain.js'
 import TrainingRadar from '../components/TrainingRadar.vue'
 const store = useAppStore(),
-  { t, locale, n } = useI18n(),
+  { t, n } = useI18n(),
   router = useRouter()
 const today = computed(() => localDate(new Date(), store.data.settings.timeZone)),
   stats = computed(() => dailyStats(store.data, today.value)),
@@ -17,14 +17,6 @@ const today = computed(() => localDate(new Date(), store.data.settings.timeZone)
       rangeSets(store.data.sessions, today.value, today.value, store.data.settings.timeZone),
     ),
   )
-const date = computed(() =>
-  new Intl.DateTimeFormat(locale.value, {
-    weekday: 'long',
-    month: 'long',
-    day: 'numeric',
-    timeZone: store.data.settings.timeZone,
-  }).format(new Date()),
-)
 function start(plan) {
   if (store.data.active) {
     router.push('/player')
@@ -35,10 +27,7 @@ function start(plan) {
 </script>
 <template>
   <div class="page-heading dashboard-heading">
-    <div>
-      <p class="eyebrow">{{ date }}</p>
-      <h1>{{ t('overview') }}</h1>
-    </div>
+    <h1>{{ t('overview') }}</h1>
     <div class="dashboard-actions">
       <RouterLink :to="{ path: '/plans', query: { new: '1' } }" class="button primary">
         <Plus :size="17" />{{ t('newPlan') }}

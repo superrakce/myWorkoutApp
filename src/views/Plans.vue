@@ -64,10 +64,7 @@ function remove(id) {
 </script>
 <template>
   <div class="page-heading">
-    <div>
-      <p class="eyebrow">{{ t('planEyebrow') }}</p>
-      <h1>{{ t('plans') }}</h1>
-    </div>
+    <h1>{{ t('plans') }}</h1>
     <button v-if="!editing" class="button primary" @click="create">
       <Plus :size="18" />{{ t('newPlan') }}
     </button>

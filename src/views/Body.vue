@@ -118,12 +118,8 @@ function remove(id) {
 </script>
 <template>
   <div class="page-heading">
-    <div>
-      <p class="eyebrow">{{ t('bodyEyebrow') }}</p>
-      <h1>{{ t('body') }}</h1>
-    </div>
+    <h1>{{ t('body') }}</h1>
   </div>
-  <p class="muted">{{ t('bodyHint') }}</p>
   <div class="metric-grid three">
     <article class="metric-card">
       <span class="muted">{{ t('bmi') }}</span>
