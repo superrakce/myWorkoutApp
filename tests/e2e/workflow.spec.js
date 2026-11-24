@@ -219,6 +219,8 @@ test('overview quick actions open their forms and metrics sit beside the radar',
   await expect(page.getByText('Your next session', { exact: true })).toHaveCount(0)
   await expect(page.getByText('Small steps, daily', { exact: true })).toHaveCount(0)
   await expect(page.getByText('Training, in balance.', { exact: true })).toHaveCount(0)
+  expect(await page.locator('html').evaluate((el) => getComputedStyle(el).backgroundColor)).toBe('rgb(23, 44, 54)')
+  expect(await page.locator('.dashboard-metrics .metric-card').first().evaluate((el) => getComputedStyle(el).backgroundColor)).toBe('rgb(32, 57, 70)')
   expect(await page.locator('.accent').evaluate((el) => getComputedStyle(el).backgroundColor)).toBe('rgb(243, 227, 8)')
   expect(await actions.getByRole('link', { name: 'Create a plan', exact: true }).evaluate((el) => getComputedStyle(el).backgroundColor)).toBe('rgb(44, 76, 92)')
 

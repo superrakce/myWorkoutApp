@@ -40,7 +40,7 @@ defineProps({ part: { type: String, default: 'core' }, large: Boolean })
         <path d="M75 65L94 76M206 76L225 65" />
         <path d="M76 57L69 70M92 66L85 79M209 66L216 79M225 57L232 70" />
       </g>
-      <circle cx="250" cy="35" r="14" fill="white" opacity=".7" />
+      <circle cx="250" cy="35" r="14" fill="var(--color-surface)" opacity=".7" />
       <path d="M245 35H255M250 30V40" stroke="var(--palette-slate)" stroke-width="1.5" />
     </svg>
   </div>

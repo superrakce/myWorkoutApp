@@ -71,7 +71,7 @@ function start(plan) {
           <rect x="51" y="96" width="26" height="81" rx="8" fill="var(--color-accent-hover)" />
           <rect x="220" y="79" width="35" height="115" rx="10" fill="var(--color-accent)" />
           <rect x="255" y="96" width="26" height="81" rx="8" fill="var(--color-accent-hover)" />
-          <path d="M86 90V180M231 90V180" stroke="var(--color-surface)" opacity=".3" stroke-width="4" />
+          <path d="M86 90V180M231 90V180" stroke="var(--color-on-action)" opacity=".3" stroke-width="4" />
         </g></svg
       ><span class="art-caption">{{ t('artCaption') }}</span>
     </div>
